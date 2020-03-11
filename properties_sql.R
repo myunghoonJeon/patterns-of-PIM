@@ -2,10 +2,10 @@
 comment="
 SELECT condition_occurrence_id,ce.person_id, p.year_of_birth,cast(year(ce.condition_start_date) as int)-cast(p.year_of_birth as int) as age, ce.condition_start_date as condition_date,
 vo.visit_concept_id as visit_concept
-FROM CDMPv531.dbo.condition_occurrence ce
-left join CDMPv531.dbo.person p
+FROM [DB].dbo.condition_occurrence ce
+left join [DB].dbo.person p
 on ce.person_id = p.person_id and cast(year(ce.condition_start_date) as int)-cast(p.year_of_birth as int) >64
-left join CDMPv531.dbo.visit_occurrence vo
+left join '[DB].dbo.visit_occurrence vo
 on ce.visit_occurrence_id = vo.visit_occurrence_id
 where p.year_of_birth is not null and year(condition_start_date)>1994 and vo.visit_concept_id=9202
 "
@@ -13,10 +13,10 @@ where p.year_of_birth is not null and year(condition_start_date)>1994 and vo.vis
 comment="
 SELECT ce.person_id, p.year_of_birth,cast(year(ce.condition_start_date) as int)-cast(p.year_of_birth as int) as age, ce.condition_start_date as condition_date,
 vo.visit_concept_id as visit_concept,condition_concept_id
-FROM CDMPv531.dbo.condition_occurrence ce
-left join CDMPv531.dbo.person p
+FROM [DB].dbo.condition_occurrence ce
+left join [DB].dbo.person p
 on ce.person_id = p.person_id and cast(year(ce.condition_start_date) as int)-cast(p.year_of_birth as int) >64
-left join CDMPv531.dbo.visit_occurrence vo
+left join [DB].dbo.visit_occurrence vo
 on ce.visit_occurrence_id = vo.visit_occurrence_id
 where p.year_of_birth is not null and year(condition_start_date)>1994 and vo.visit_concept_id=9202 and condition_concept_id != 0
 "
@@ -36,8 +36,8 @@ comment="SELECT 	de.person_id,
 				cast(year(de.drug_exposure_start_date) as int)-cast(p.year_of_birth as int) as age,
 				drug_exposure_start_date,
 				drug_concept_id
-		FROM CDMPv531.dbo.drug_exposure de
-		left join CDMPv531.dbo.person p
+		FROM [DB].dbo.drug_exposure de
+		left join [DB].dbo.person p
 		on de.person_id = p.person_id and cast(year(de.drug_exposure_start_date) as int)-cast(p.year_of_birth as int) >64 
 		where p.year_of_birth is not null and year(drug_exposure_start_date)>1994 and drug_exposure_start_date is not null"
 
