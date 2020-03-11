@@ -1,6 +1,6 @@
 # patterns-of-PIM
 Title : Patterns of potentially inappropriate medication use according to gender in Korean older adults
-- post-doc을 시작하며 첫 번째 CDM기반 논문을 작성하기 위한 GIT 입니다.
+- post-doc을 시작하며 CDM기반의 첫 번째 논문을 작성하기 위한 GIT 입니다.
 - 양영모 박사님과 협업하여 논문을 완성할 수 있기를 희망합니다.
 
 기본 데이터 전처리는 DB쿼리를 기반으로 서버 사이드에서 수행
@@ -25,5 +25,6 @@ Title : Patterns of potentially inappropriate medication use according to gender
 * 사용 기술
   * SQL
   * R
+  * 
   * dplyr
   * visualization method ( sankey Diagram 예상 )
