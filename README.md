@@ -25,6 +25,6 @@ Title : Patterns of potentially inappropriate medication use according to gender
 * 사용 기술
   * SQL
   * R
-  * 
+  * OHDSI DB connector library
   * dplyr
   * visualization method ( sankey Diagram 예상 )
