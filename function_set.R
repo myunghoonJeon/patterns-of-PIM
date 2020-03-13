@@ -6,7 +6,7 @@
 # devtools::install_github("ohdsi/DatabaseConnector")
 setwd("c:\\Git\\patterns-of-PIM")
 source("propertiesParameters.R")
-
+cl <- data.frame()
 library(DatabaseConnector)
 
 # db connection =============================================================================
@@ -79,4 +79,152 @@ getRatioGender <- function(df){
   totalWithMan[is.na(totalWithMan)] <-0
   totalWithManWoman <- totalWithMan %>% mutate(womanCount = totalWithMan$count-totalWithMan$manCount)
   print(totalWithManWoman)  
+}
+#get Trim gender dataframe
+getTrimGenderDf <- function(df,gender){
+  df <- df %>% filter(trimws(GENDER)==gender)
+  return(df)
+}
+
+#get ratio age  ======================================================================
+getAgeCount <- function(df,start,end){
+  df <- df %>% subset(AGE>=start & AGE <=end) %>% summarise(count=n())
+  return(df$count)
+}
+
+getAgeCountVector <- function(df){
+  c65to69 <- getAgeCount(df,65,69)
+  c70to74 <- getAgeCount(df,70,74)
+  c75to79 <- getAgeCount(df,75,79)
+  c80to84 <- getAgeCount(df,80,84)
+  c85over <- getAgeCount(df,85,200)
+  count <- c(c65to69,c70to74,c75to79,c80to84,c85over)
+  return(count)
+}
+
+getRatioAge <- function(df){
+  criteriaList <- c("count65to69","count70to74","count75to79","count80to84","count85over")
+  #total
+  totalAge <- getAgeCountVector(df)
+  #man
+  manAge <- getAgeCountVector(getTrimGenderDf(df,"M"))
+  #woman
+  womanAge <- getAgeCountVector(getTrimGenderDf(df,"F"))
+  
+  ageRatio <- data.frame(criteria=criteriaList,total=totalAge,man=manAge,woman=womanAge)
+  
+  totalCount <- ageRatio %>% summarise(count = sum(total))
+  
+  ageRatio <- ageRatio %>% group_by(criteria) %>% summarise(total =total/totalCount$count*100,
+                                                            manPer = man/totalCount$count*100,
+                                                            woman = woman/totalCount$count*100)
+  print(ageRatio)
+}
+
+
+#excel load  ======================================================================
+getInformXlsx <- function(file){
+  # install.packages("xlsx")
+  library(xlsx)
+  setwd("c:\\Git\\patterns-of-PIM")
+  drug_inform <- read.xlsx(file,1)
+  return(drug_inform)
+}
+#get sd   ======================================================================
+getSd <- function(df){
+  
+}
+
+
+#drug status ======================================================================
+getDrugStatus <- function(totalTable){
+  totalDrugCount <- totalTable %>% summarise(sum = sum(DRUG_COUNT))
+  totalDcugCount <- totalDrugCount$sum
+  
+  avgDrugUnder4Total <- totalTable %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  
+  avgDrugOver4Total <- totalTable %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  
+  
+  manDrug <- totalTable %>% filter(trimws(GENDER)=="M")
+  womanDrug <- totalTable %>% filter(trimws(GENDER)=="F")
+  avgDrugUnder4Man <- manDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  avgavgDrugOver4Man <- manDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  
+  avgDrugUnder4Woman <- womanDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  avgDrugOver4Woman <- womanDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  
+  avgDrugUnder4Total
+  avgDrugOver4Total
+  avgDrugUnder4Man
+  avgavgDrugOver4Man
+  avgDrugUnder4Woman
+  avgDrugOver4Woman
+  
+  criteria <- c("<5",">=5")
+  t <- c(avgDrugUnder4Total$ratio,
+             avgDrugOver4Total$ratio)  
+  m <- c(avgDrugUnder4Man$ratio,
+           avgavgDrugOver4Man$ratio)
+  w <- c(avgDrugUnder4Woman$ratio,
+             avgDrugOver4Woman$ratio)
+  df <- data.frame(criteria=criteria,total=t,man=m,woman=w)
+}
+# drug infrom xlsx to list format ======================================
+splitAndReturnList <- function(x){
+  splitS <- strsplit(x,",")
+  return(splitS)
+}
+
+splitAndReturnDf <- function(x){
+  splitS <- unlist(strsplit(x,","))
+  return(splitS)
+}
+
+getCondtionSplitCount <- function(df){
+  df <- df %>% select(CONDITION_CONCEPT_ID)
+  df <- apply(df,2,splitAndReturnDf)
+  df <- as.data.frame(df)
+  # df <- df %>% group_by(condition_concept_id) %>% summarise(count = n())
+  return(df)
+}
+
+getConditionListStatic <-function(conditionList){
+  cl <- apply(conditionList,1,splitAndReturnList)
+  return(cl)
+}
+
+setGlobalConditionList <- function(x){
+  cl <<- x
+}
+
+kk <- function(){
+  cl
+}
+
+search <- function(df){
+  for(i in 1:length(test)){
+    grepResult <- grep(df,test[[i]]$id)
+    if(length(grepResult)>0){
+      return(test[[i]]$name)
+    }
+  }  
+}
+
+searchCondition <- function(input){
+  for(i in 1:length(cl)){
+    grepResult <- grep(input,cl[[i]]$condition_concept_id)
+    if(length(grepResult)>0){
+      return(cl[[i]]$condition_name)
+    }
+  }
+}
+
+
+getConditionStaticCount <- function(df){
+  conditionList <- apply(df,1,searchCondition)
+  conditionList <- unlist(conditionList)
+  conditionList <- as.data.frame(conditionList)
+  conditionList <- conditionList %>% group_by(conditionList) %>% summarise(count = n())
+  conditionList
 }
