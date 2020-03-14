@@ -114,11 +114,17 @@ getRatioAge <- function(df){
   ageRatio <- data.frame(criteria=criteriaList,total=totalAge,man=manAge,woman=womanAge)
   
   totalCount <- ageRatio %>% summarise(count = sum(total))
-  
+
+  ageSumRatio <- ageRatio %>% group_by(criteria)
+    
   ageRatio <- ageRatio %>% group_by(criteria) %>% summarise(total =total/totalCount$count*100,
                                                             manPer = man/totalCount$count*100,
                                                             woman = woman/totalCount$count*100)
+  print(ageSumRatio)
+  
   print(ageRatio)
+  
+  
 }
 
 
@@ -204,7 +210,6 @@ kk <- function(){
 
 search <- function(df){
   for(i in 1:length(test)){
-    grepResult <- grep(df,test[[i]]$id)
     if(length(grepResult)>0){
       return(test[[i]]$name)
     }
@@ -220,11 +225,49 @@ searchCondition <- function(input){
   }
 }
 
-
 getConditionStaticCount <- function(df){
   conditionList <- apply(df,1,searchCondition)
+  print("1")
   conditionList <- unlist(conditionList)
+  print("2")
   conditionList <- as.data.frame(conditionList)
+  print("3")
   conditionList <- conditionList %>% group_by(conditionList) %>% summarise(count = n())
   conditionList
+}
+#grep str
+
+
+grepSearch<-function(str){
+  count <- 0
+  for(i in 1:length(comorbidityList$id)){
+    temp <- trimws(as.character(comorbidityList$id[[i]]))
+    gr <- grep(temp,str)
+    if(length(gr)>0){
+        count <- count+1
+    }
+  }
+  
+  return(count)
+}
+#cormobidity static
+getComorbidityCount<- function(df,count){
+  if(count == 4){
+    df<- df %>% filter(df$cbdCount>3) %>% summarise(count = n())
+  }
+  else{
+    df<-df %>% filter(df$cbdCount==count) %>% summarise(count = n())
+  }
+  return(df$count)
+}
+
+getComorbidityCountStatic <- function(df){
+  count0 <- getComorbidityCount(df,0)
+  count1 <- getComorbidityCount(df,1)
+  count2 <- getComorbidityCount(df,2)
+  count3 <- getComorbidityCount(df,3)
+  count4Over <- getComorbidityCount(df,4)
+  resultDf <- data.frame(criteria=c("0","1","2","3","4>"), 
+                         count=c(count0,count1,count2,count3,count4Over))
+  resultDf
 }

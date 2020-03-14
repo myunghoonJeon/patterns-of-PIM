@@ -31,21 +31,40 @@ totalTable <- totalTable %>% ungroup()
 conditionCountSumByGender <- getSumConditionCount(totalTable)
 conditionCountSumByGender
 
-# 질병 진단 통계 표준편차/백분율
+# 질병 진단 통계 표준편차
 sdTotal <- totalTable %>% summarise(sd=sd(CONDITION_COUNT))
 sdMan <- totalTable %>% filter(trimws(GENDER)=="M") %>% summarise(sd=sd(CONDITION_COUNT))
 sdWoman <- totalTable %>% filter(trimws(GENDER)=="F") %>% summarise(sd=sd(CONDITION_COUNT))
 
-# 성별 통계 백분율
+# 나이별 성별 수 집계
 forGenderTable <- totalTable %>% select(AGE,GENDER)
 ratioGender <- getRatioGender(forGenderTable)
 ratioGender
 
-# 나이 통계 (성별) 표준편차 / 백분율
+
+# 나이 통계 (성별) 표준편차 / 평균
+# 전체
+meanAgeTotal <- totalTable %>% summarise(mean = mean(AGE))
 sdAgeTotal <- totalTable %>% summarise(sd = sd(totalTable$AGE))
-sdAgeMan <- totalTable %>% filter(trimws(GENDER)=="M") %>% summarise(sd=sd(AGE))
-sdAgeWoman <- totalTable %>% filter(trimws(GENDER)=="F") %>% summarise(sd=sd(AGE))
+meanAgeTotal
+sdAgeTotal
+
+# 남자
+ageManTalbe <- totalTable %>% filter(trimws(GENDER)=="M")
+meanAgeMan <- ageManTalbe %>% summarise(mean = mean(AGE))
+sdAgeMan <- ageManTalbe %>% summarise(sd=sd(AGE))
+meanAgeMan
+sdAgeMan
+
+# 여자
+ageWomanTable <- totalTable %>% filter(trimws(GENDER)=="F")
+meanAgeWoman <- ageWomanTable %>% summarise(mean = mean(AGE))
+sdAgeWoman <-  ageWomanTable %>% summarise(sd=sd(AGE))
+meanAgeWoman
+sdAgeWoman
+
 countAgeTotal <- totalTable %>% select(AGE,GENDER)
+
 getRatioAge(countAgeTotal)
 
 # 약물(beers criteria 기준) 정보 통계 (성별 기준) 백분율
@@ -85,7 +104,7 @@ conditionStaticList
 setGlobalConditionList(conditionStaticList)
 ### 전체 진단 
 totalInput <- totalTable %>% select(CONDITION_CONCEPT_ID)
-totalInput totalInput <- getCondtionSplitCount(totalInput)
+totalInput <- getCondtionSplitCount(totalInput)
 getConditionStaticCount(totalInput)
 ### 진단 - 남자
 manInput <- totalTable %>% filter(trimws(GENDER)=="M") %>% select(CONDITION_CONCEPT_ID)
@@ -94,4 +113,71 @@ getConditionStaticCount(manInput)
 ### 진단 - 여자
 womanInput <- totalTable %>% filter(trimws(GENDER)=="F") %>% select(CONDITION_CONCEPT_ID)
 womanInput <- getCondtionSplitCount(womanInput)
+womanInput
 getConditionStaticCount(womanInput)
+
+#PIM 분류
+drugListXlsx <- getInformXlsx("drug_inform.xlsx")
+drugListXlsx
+
+conditionTotal <- totalTable %>% select(CONDITION_CONCEPT_ID)
+
+splitAndReturnDf <- function(x){
+  splitS <- unlist(strsplit(x,","))
+  return(splitS)
+}
+
+clx <- conditionListXlsx %>% select(condition_concept_id)
+clx
+chChr <- function(x){
+  temp <- as.character(x)
+  temp <- trimws(temp)
+  return(temp)
+}
+
+clx<-apply(clx,1,chChr)
+head(clx)
+comorbidityList <- splitAndReturnDf(clx)
+comorbidityList <- as.data.frame(comorbidityList)
+names(comorbidityList) <- c("id")
+head(comorbidityList)
+
+comorbidityList <- apply(comorbidityList,1,chChr)
+comorbidityList <- data.frame(comorbidityList)
+names(comorbidityList) <- c("id")
+comorbidityList
+
+sf <- function(x){
+  count <-0
+  trimStr <- trimws(as.character(x))
+  tempDf <- splitAndReturnDf(trimStr)
+  for(i in 1:length(tempDf)){
+    index <- which(comorbidityList== tempDf[[i]])
+    if(length(index) >0){
+      count <- count +1
+    }
+  }
+  print(count)
+  return(count)
+  # result <- grepSearch(t)
+  # return(result)
+}
+l <- data.frame(list = c("195483,200054","196048","1203949"))
+l <- conditionTotal
+l
+# conditionTotal
+cbdDf <- apply(l,1,sf)
+cbdDf <- as.data.frame(cbdDf)
+names(cbdDf) <- c("cbdCount")
+cbdDf <- as.data.frame(cbdDf)
+
+saveRDS(cbdDf,"cormorbidity.rds")
+cbdDf <- readRDS("cormorbidity.rds")
+names(cbdDf) <- c("cbdCount")
+
+sdCbdTotal <- cbdDf %>% summarise(sd = sd(cbdCount))
+sdCbdTotal
+meanCbdTotal <- cbdDf %>% summarise(mean = mean(cbdCount))
+meanCbdTotal
+comordityCountStatic <- getComorbidityCountStatic(cbdDf)
+comordityCountStatic
