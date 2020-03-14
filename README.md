@@ -25,6 +25,15 @@ Title : Patterns of potentially inappropriate medication use according to gender
 * 사용 기술
   * SQL
   * R
-  * OHDSI DB connector library
-  * dplyr
   * visualization method ( sankey Diagram 예상 )
+
+* 코드 구성
+  * statc_main.R : 결과를 호출
+  * function_set.R : 데이터 처리 함수 모음
+  * properties_sql.R : 데이터 전처리 과정에서 수행한 쿼리모음
+  * (숨김코드) propertiesParameters.R : 각종 ID/PW, 접근 정보, 변수 설정
+
+* 파일 구성
+  * conditon_inform.xlsx : 만성질환 정보 구분
+  * drug_inform.xlsx : beers 기준 필터링 약물 구분
+  
