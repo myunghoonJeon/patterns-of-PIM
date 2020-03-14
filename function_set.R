@@ -143,22 +143,34 @@ getSd <- function(df){
 
 
 #drug status ======================================================================
+getMeanSd <- function(tt,str){
+  meanTotal <- tt %>% summarise(mean = mean(DRUG_COUNT))
+  sdTotal <- tt %>% summarise(sd = sd(DRUG_COUNT))
+  cat(str," - mean : ",meanTotal$mean,"  sd : ",sdTotal$sd,"\n")
+}
+
 getDrugStatus <- function(totalTable){
   totalDrugCount <- totalTable %>% summarise(sum = sum(DRUG_COUNT))
   totalDcugCount <- totalDrugCount$sum
   
-  avgDrugUnder4Total <- totalTable %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
-  
-  avgDrugOver4Total <- totalTable %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  getMeanSd(totalTable,"total")
+  avgDrugUnder4Total <- totalTable %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT))
+  avgDrugOver4Total <- totalTable %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT))
   
   
   manDrug <- totalTable %>% filter(trimws(GENDER)=="M")
-  womanDrug <- totalTable %>% filter(trimws(GENDER)=="F")
-  avgDrugUnder4Man <- manDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
-  avgavgDrugOver4Man <- manDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  getMeanSd(manDrug,"Man")
+  totalManDrugCount <- manDrug %>% summarise(sum = sum(DRUG_COUNT))
   
-  avgDrugUnder4Woman <- womanDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
-  avgDrugOver4Woman <- womanDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT)/totalDcugCount*100)
+  womanDrug <- totalTable %>% filter(trimws(GENDER)=="F")
+  getMeanSd(womanDrug,"Woman")
+  totalWomanDrugCount <- womanDrug %>% summarise(sum = sum(DRUG_COUNT))
+  
+  avgDrugUnder4Man <- manDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT))
+  avgavgDrugOver4Man <- manDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT))
+  
+  avgDrugUnder4Woman <- womanDrug %>% filter(DRUG_COUNT<5) %>% summarise(ratio = sum(DRUG_COUNT))
+  avgDrugOver4Woman <- womanDrug %>% filter(DRUG_COUNT>=5) %>% summarise(ratio = sum(DRUG_COUNT))
   
   avgDrugUnder4Total
   avgDrugOver4Total

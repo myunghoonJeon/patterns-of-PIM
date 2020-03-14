@@ -165,7 +165,7 @@ sf <- function(x){
 l <- data.frame(list = c("195483,200054","196048","1203949"))
 l <- conditionTotal
 l
-# conditionTotal
+
 cbdDf <- apply(l,1,sf)
 cbdDf <- as.data.frame(cbdDf)
 names(cbdDf) <- c("cbdCount")
@@ -175,9 +175,38 @@ saveRDS(cbdDf,"cormorbidity.rds")
 cbdDf <- readRDS("cormorbidity.rds")
 names(cbdDf) <- c("cbdCount")
 
+#만성질환 통계 =================================
+#데이터 결합 (전체 데이터 성별 + 만성질환 카운트)
+totalWithGender <- totalTable %>% filter(trimws(GENDER))
+totalWithGender <- cbind(totalWithGender,cbdDf)
+totalWithGender
+totalTable
+#전체 대상 (만성질환 으로만 통계 가능)
 sdCbdTotal <- cbdDf %>% summarise(sd = sd(cbdCount))
 sdCbdTotal
 meanCbdTotal <- cbdDf %>% summarise(mean = mean(cbdCount))
 meanCbdTotal
 comordityCountStatic <- getComorbidityCountStatic(cbdDf)
 comordityCountStatic
+#남자
+manTotal <- totalWithGender %>% filter(trimws(GENDER)=="M")
+manTotal <- manTotal %>% select(cbdCount)
+
+sdCbdMan <- manTotal %>% summarise(sd = sd(cbdCount))
+sdCbdMan
+meanCbdToMan <- manTotal %>% summarise(mean = mean(cbdCount))
+meanCbdToMan
+
+comordityManCountStatic <- getComorbidityCountStatic(manTotal)
+comordityManCountStatic
+#여자
+womanTotal <- totalWithGender %>% filter(trimws(GENDER)=="F")
+womanTotal <- womanTotal %>% select(cbdCount)
+
+sdCbdWoman <- womanTotal %>% summarise(sd = sd(cbdCount))
+sdCbdWoman
+meanCbdToWoman <- womanTotal %>% summarise(mean = mean(cbdCount))
+meanCbdToWoman
+
+comordityWomanCountStatic <- getComorbidityCountStatic(womanTotal)
+comordityWomanCountStatic
