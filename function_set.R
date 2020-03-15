@@ -10,17 +10,29 @@ cl <- data.frame()
 library(DatabaseConnector)
 
 # db connection =============================================================================
-# getDbConnection <- function(){
-#   connectionDetails <- DatabaseConnector::createConnectionDetails(dbms=dbParameter$dbms , 
-#                                                server=dbParameter$server,
-#                                                user=dbParameter$user,
-#                                                password=dbParameter$password,
-#                                                schema=dbParameter$schema)
-#   conn <- connect(connectionDetails)
-#   
-#   return(conn)
-#  
-# }
+getDbConnection <- function(){
+  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms=dbParameter$dbms ,
+                                               server=dbParameter$server,
+                                               user=dbParameter$user,
+                                               password=dbParameter$password,
+                                               schema=dbParameter$schema)
+  conn <- connect(connectionDetails)
+
+  return(conn)
+
+}
+#setDrugConditionCount ======================================================================
+getDrugConditionCount <- function(totalTable){
+  addconditionDrugCount <- totalTable %>% group_by(PERSON_ID,AGE,CONDITION_START_DATE) %>%
+    summarise(CONDITION_CONCEPT_ID,
+              CONDITION_COUNT = getConditionDrugCount(CONDITION_CONCEPT_ID),
+              DRUG_COUNT = getConditionDrugCount(DRUG_CONCEPT_ID),
+              DRUG_CONCEPT_ID,GENDER
+    )
+  addconditionDrugCount <- ungroup(addconditionDrugCount)
+  return(addconditionDrugCount)
+}
+
 # get total table querry ====================================================================
 getTotalTableQuerry <- function(){
   return(getTableSql)
@@ -262,7 +274,7 @@ grepSearch<-function(str){
   
   return(count)
 }
-#cormobidity static
+#cormobidity static ===========================================================
 getComorbidityCount<- function(df,count){
   if(count == 4){
     df<- df %>% filter(df$cbdCount>3) %>% summarise(count = n())
@@ -282,4 +294,113 @@ getComorbidityCountStatic <- function(df){
   resultDf <- data.frame(criteria=c("0","1","2","3","4>"), 
                          count=c(count0,count1,count2,count3,count4Over))
   resultDf
+}
+
+
+
+#PIM(Potentially inappropriate medication) static ===========================================================
+#PIM 분류
+getPimInform <- function(df){
+  
+  
+  splitPimReturnDf <- function(x){
+    splitS <- unlist(strsplit(x,","))
+    return(splitS)
+  }
+  
+  chChr <- function(x){
+    temp <- as.character(x)
+    temp <- trimws(temp)
+    return(temp)
+  }
+  
+  # comorbidityList <- apply(comorbidityList,1,chChr)
+  # comorbidityList <- data.frame(comorbidityList)
+  # names(comorbidityList) <- c("id")
+  # comorbidityList
+  
+  sf <- function(x){
+    result <-data.frame()
+    count <-0
+    tempStr <-NULL
+    trimStr <- trimws(as.character(x))
+    tempDf <- splitAndReturnDf(trimStr)
+    for(i in 1:length(tempDf)){
+      index <- which(drugList == tempDf[[i]])
+      if(length(index) >0){
+        cat("PIM : ",tempDf[[i]],"\n")
+        count <- count +1
+        if(length(tempStr)==0){
+          tempStr <-c(tempDf[[i]])
+        }
+        else{
+          tempStr <- paste(tempStr,tempDf[[i]],sep=",")
+        }
+      }else{
+        print(tempDf[[i]])
+      }
+    }
+    
+    if(count==0){
+      result <- data.frame(pimCount=c(count),pimList=c("x"))
+    }else{
+      result <- data.frame(pimCount=c(count),pimList=c(tempStr))
+    }
+    # print(result)
+    return(result)
+    # result <- grepSearch(t)
+    # return(result)
+  }
+  drugListXlsx <- getInformXlsx("drug_inform.xlsx")
+  drugListXlsx
+  
+  dtx <- drugListXlsx %>% select(Drug_Concept_ID)
+  dtx
+  drugTotalChr<-apply(dtx,1,chChr)
+  drugTotalChr
+  drugList <- splitPimReturnDf(drugTotalChr)
+  drugList <- as.data.frame(drugList)
+  names(drugList) <- c("id")
+  head(drugList)
+  drugList
+  
+  l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
+  l
+  totalTable <- l
+  
+  totalTable <- readRdsByYear(2006,2006)
+  totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
+  totalTable
+  drugListCount <- apply(totalTable,1,sf)
+  drugListCount
+  
+  pimDf <- do.call(rbind.data.frame, drugListCount)
+  pimDf
+  test <- pimDf %>% group_by(pimCount) %>% summarise(c = n())
+  test
+  # pimDf
+  return(pimDf)
+  
+  # saveRDS(cbdDf,"cormorbidity.rds")
+  # cbdDf <- readRDS("cormorbidity.rds")
+  # names(cbdDf) <- c("cbdCount")
+  
+}
+
+# year base RDS set get
+
+setRdsByYear <- function(df,start,end){
+  yearDf <- data.frame()
+  yearDf <- df %>% subset(year>=start&year<=end)
+  saveName <- paste0("pim",start,"to",end,".rds")
+  saveRDS(yearDf,saveName)
+  
+}
+readRdsByYear <- function(start,end){
+  yearDf <- data.frame()
+  fileName <- paste0("pim",start,"to",end,".rds")
+  cat(fileName," reading...\n")
+  yearDf <- readRDS(fileName)
+  cat(fileName," read complete\n")
+  return(yearDf)
 }

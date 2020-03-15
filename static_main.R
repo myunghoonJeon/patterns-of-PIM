@@ -7,27 +7,7 @@ source("function_set.r")
 # sql <- getTotalTableQuerry()
 # 
 # totalTable <- querySql(conn,sql)
-# 
-# saveRDS(totalTable,"totalTable.rds")
-# 
-# getTotalTable <- readRDS("totalTable.rds")
 
-# getTotalTable
-
-# test <- getTotalTable %>% group_by(PERSON_ID,AGE,CONDITION_START_DATE) %>% 
-#   summarise(CONDITION_CONCEPT_ID, 
-#             CONDITION_COUNT = getConditionDrugCount(CONDITION_CONCEPT_ID),
-#             DRUG_COUNT = getConditionDrugCount(DRUG_CONCEPT_ID),
-#             DRUG_CONCEPT_ID,GENDER
-#             )
-# saveRDS(test,"finalTotalTable2.rds")
-
-# test
-# test2 <- test %>% ungroup()
-# read database
-totalTable <- readRDS("c:\\Git\\patterns-of-PIM\\finalTotalTable2.rds")
-totalTable <- totalTable %>% ungroup()
-# 성별에 따른 진단 수 
 conditionCountSumByGender <- getSumConditionCount(totalTable)
 conditionCountSumByGender
 
@@ -116,9 +96,7 @@ womanInput <- getCondtionSplitCount(womanInput)
 womanInput
 getConditionStaticCount(womanInput)
 
-#PIM 분류
-drugListXlsx <- getInformXlsx("drug_inform.xlsx")
-drugListXlsx
+# 만성질환 데이터 전처리 (funciton_set.R로 옮길 예정 )
 
 conditionTotal <- totalTable %>% select(CONDITION_CONCEPT_ID)
 
@@ -210,3 +188,60 @@ meanCbdToWoman
 
 comordityWomanCountStatic <- getComorbidityCountStatic(womanTotal)
 comordityWomanCountStatic
+
+#pim 통계 -( 각 처방전이 pim에 해당되도록 하는 약물 수 파악  )
+# saveRDS(addyearTotal,"addYearTotal0315.rds")
+
+addyearTotal <- totalTable %>% group_by(PERSON_ID,CONDITION_START_DATE,AGE,CONDITION_CONCEPT_ID,CONDITION_COUNT,DRUG_CONCEPT_ID,DRUG_COUNT,GENDER)%>% summarise(year = as.numeric(format(CONDITION_START_DATE,'%Y')))
+
+addyearTotal <- readRDS("addYearTotal0315.rds")
+addyearTotal <- ungroup(addyearTotal)
+addyearTotal
+
+setRdsByYear(addyearTotal,1999,2000)
+setRdsByYear(addyearTotal,2001,2005)
+setRdsByYear(addyearTotal,2006,2006)
+# split1999to2009 <- addyearTotal %>% subset(year>=1999&year<=2009)
+# split1999to2009
+# split2010to2013 <- addyearTotal %>% subset(year>=2010&year<=2013)
+# split2010to2013
+# split2014to2015 <- addyearTotal %>% subset(year>=2014&year<=2015)
+# split2014to2015
+# split2016to2018 <- addyearTotal %>% subset(year>=2016)
+# split2016to2018
+
+pim1999to2009 <- split1999to2009 %>% select(DRUG_CONCEPT_ID)
+saveRDS(pim1999to2009,"pim1999to2009.rds")
+
+pim1999to2009 <- getPimInform(pim1999to2009)
+
+pim1999to2009
+View(pim1999to2009)
+split2010to2013 <- split2010to2013 %>% select(DRUG_CONCEPT_ID)
+split2010to2013 <- getPimInform(split2010to2013)
+
+split2014to2015 <- split2014to2015 %>% select(DRUG_CONCEPT_ID)
+split2014to2015 <- getPimInform(split2014to2015)
+
+split2016to2018 <- split2016to2018 %>% select(DRUG_CONCEPT_ID)
+split2016to2018 <- getPimInform(split2016to2018)
+
+pimInput <- totalTable %>% select(DRUG_CONCEPT_ID)
+pimInput <- pimInput %>% arrange(desc(DRUG_CONCEPT_ID))
+pimInput
+pimCount <- getPimInform(pimInput)
+pimCount
+
+head(test)
+saveRDS("pimInfom.rds")
+pimCount
+
+# 연도별 처방전 건수 분류
+totalTable <- readRDS("addYearTotal0315.rds")
+totalTable
+
+totalYear <- totalTable %>% group_by(year) %>% summarise(total = n())
+manYear <- totalTable %>% filter(trimws(GENDER)=="M") %>% group_by(year) %>% summarise(man = n())
+manYear <- manYear %>% select(man)
+staticYear <- cbind(totalYear,manYear)
+staticYear <- staticYear %>% group_by(year,total,man)%>%  summarise(woman = (total-man))
