@@ -300,7 +300,7 @@ getComorbidityCountStatic <- function(df){
 
 #PIM(Potentially inappropriate medication) static ===========================================================
 #PIM 분류
-getPimInform <- function(df){
+getPimColumn <- function(df,year){
   
   
   splitPimReturnDf <- function(x){
@@ -364,26 +364,23 @@ getPimInform <- function(df){
   head(drugList)
   drugList
   
-  l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
-  l
+  # l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
+  # l
   # totalTable <- l
   
   
-  totalTable <- readRdsByYear(start,end)
+  totalTable <- df
   totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
   
-  totalTable <-l
+  # totalTable <-l
   
   
   drugListCount <- apply(totalTable,1,sf)
   drugListCount
   pimDf <- do.call(rbind.data.frame, drugListCount)
   pimDf
-  
-  test <- pimDf %>% group_by(pimCount) %>% summarise(c = n())
-  
-  test
   # pimDf
+  cat("[[[ complete : ",year," ]]]\n")
   return(pimDf)
   
   # saveRDS(cbdDf,"cormorbidity.rds")
@@ -411,7 +408,14 @@ getComorbidityRdsByYear <- function(f,start,end){
   cat(fileName," complete read\n")
   return(yearDf)
 }
-
+getPimRdsByYear <- function(f,start,end){
+  yearDf <- data.frame()
+  fileName <- paste0(f,"Result",start,"to",end,".rds")
+  cat(fileName," reading...\n")
+  yearDf <- readRDS(fileName)
+  cat(fileName," complete read\n")
+  return(yearDf)
+}
 setRdsByYear <- function(df,f,start,end){
   yearDf <- data.frame()
   yearDf <- df %>% subset(year>=start&year<=end)
@@ -436,7 +440,7 @@ setRdsEachYear <- function(df,f,start,end){
   }
 }
 #comorbidity list extraction ==========================================
-getComorbidityColumn <- function(comorbidiTyDf){
+getComorbidityColumn <- function(comorbidiTyDf,year){
   
   
   splitPimReturnDf <- function(x){
@@ -511,13 +515,22 @@ getComorbidityColumn <- function(comorbidiTyDf){
   conditionListCount
   comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
   comorbidityDf
+  cat("[[[ complete : ",year," ]]]\n")
   return(comorbidityDf)
 }
 # comorbidity result save to RDS========================
 clacAndSaveComorbidity <- function(content,startYear,endYear){
   for(i in startYear:endYear){
     tempDf <- getRdsByYear(content,i,i)
-    resultDf <- getComorbidityColumn(tempDf)
+    resultDf <- getComorbidityColumn(tempDf,i)
+    setComorbidityRdsByYear(resultDf,content,i,i)
+  }
+}
+# PIM result save to RDS========================
+clacAndSavePim <- function(content,startYear,endYear){
+  for(i in startYear:endYear){
+    tempDf <- getRdsByYear(content,i,i)
+    resultDf <- getPimColumn(tempDf,i)
     setComorbidityRdsByYear(resultDf,content,i,i)
   }
 }
