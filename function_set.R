@@ -395,7 +395,7 @@ getPimInform <- function(df){
 # year base RDS set get
 setComorbidityRdsByYear <- function(df,f,start,end){
   yearDf <- data.frame()
-  yearDf <- df %>% subset(year>=start&year<=end)
+  yearDf <- df
   saveName <- paste0(f,"Result",start,"to",end,".rds")
   cat(saveName," saving...\n")
   saveRDS(yearDf,saveName)
@@ -505,25 +505,19 @@ getComorbidityColumn <- function(comorbidiTyDf){
   # 
   # totalTable <-l
   # 
-  
-  
-  
   totalTable <- comorbidiTyDf %>% select(CONDITION_CONCEPT_ID)
   
   conditionListCount <- apply(totalTable,1,checkCormorbidity)
   conditionListCount
   comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
   comorbidityDf
-  head(comorbidityDf)
   return(comorbidityDf)
 }
 # comorbidity result save to RDS========================
 clacAndSaveComorbidity <- function(content,startYear,endYear){
-  
   for(i in startYear:endYear){
     tempDf <- getRdsByYear(content,i,i)
     resultDf <- getComorbidityColumn(tempDf)
     setComorbidityRdsByYear(resultDf,content,i,i)
   }
-  
 }
