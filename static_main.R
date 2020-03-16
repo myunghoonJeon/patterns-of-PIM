@@ -153,6 +153,24 @@ saveRDS(cbdDf,"cormorbidity.rds")
 cbdDf <- readRDS("cormorbidity.rds")
 names(cbdDf) <- c("cbdCount")
 
+#만성질환 테스트===================================
+tyt <- readRDS("addYearTotal0315.rds")
+tyt <- ungroup(addyearTotal)
+tyt
+setRdsEachYear(tyt,"comorbidity",1998,2018)
+
+
+tyt
+content = "comorbidity"
+startYear = 2001
+endYear = 2005
+
+clacAndSaveComorbidity(content,startYear,endYear)
+
+temp <- getComorbidityRdsByYear(content,1998,1998)
+
+temp 
+
 #만성질환 통계 =================================
 #데이터 결합 (전체 데이터 성별 + 만성질환 카운트)
 totalWithGender <- totalTable %>% filter(trimws(GENDER))
@@ -197,10 +215,22 @@ addyearTotal <- totalTable %>% group_by(PERSON_ID,CONDITION_START_DATE,AGE,CONDI
 addyearTotal <- readRDS("addYearTotal0315.rds")
 addyearTotal <- ungroup(addyearTotal)
 addyearTotal
+# womanTotal <- addyearTotal %>% filter(trimws(GENDER)=="F")
+# womanTotal
+# manTotal <- addyearTotal %>% filter(trimws(GENDER)=="M")
+# manTotal 
+# setRdsByYear(addyearTotal,1999,2000)
+# setRdsByYear(addyearTotal,2001,2005)
+# setRdsByYear(addyearTotal,2006,2006)
+# setRdsByYear(addyearTotal,2007,2008)
+# setRdsByYear(addyearTotal,2009,2010)
+# setRdsByYear(addyearTotal,2011,2012)
+# setRdsByYear(addyearTotal,2013,2014)
+# setRdsByYear(addyearTotal,2015,2016)
+# setRdsByYear(addyearTotal,2017,2018)
 
-setRdsByYear(addyearTotal,1999,2000)
-setRdsByYear(addyearTotal,2001,2005)
-setRdsByYear(addyearTotal,2006,2006)
+setRdsEachYear(addyearTotal,1999,2018)
+
 # split1999to2009 <- addyearTotal %>% subset(year>=1999&year<=2009)
 # split1999to2009
 # split2010to2013 <- addyearTotal %>% subset(year>=2010&year<=2013)
@@ -241,7 +271,10 @@ totalTable <- readRDS("addYearTotal0315.rds")
 totalTable
 
 totalYear <- totalTable %>% group_by(year) %>% summarise(total = n())
+
 manYear <- totalTable %>% filter(trimws(GENDER)=="M") %>% group_by(year) %>% summarise(man = n())
 manYear <- manYear %>% select(man)
+
 staticYear <- cbind(totalYear,manYear)
 staticYear <- staticYear %>% group_by(year,total,man)%>%  summarise(woman = (total-man))
+staticYear

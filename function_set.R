@@ -366,17 +366,22 @@ getPimInform <- function(df){
   
   l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
   l
-  totalTable <- l
+  # totalTable <- l
   
-  totalTable <- readRdsByYear(2006,2006)
+  
+  totalTable <- readRdsByYear(start,end)
   totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
-  totalTable
+  
+  totalTable <-l
+  
+  
   drugListCount <- apply(totalTable,1,sf)
   drugListCount
-  
   pimDf <- do.call(rbind.data.frame, drugListCount)
   pimDf
+  
   test <- pimDf %>% group_by(pimCount) %>% summarise(c = n())
+  
   test
   # pimDf
   return(pimDf)
@@ -388,19 +393,137 @@ getPimInform <- function(df){
 }
 
 # year base RDS set get
-
-setRdsByYear <- function(df,start,end){
+setComorbidityRdsByYear <- function(df,f,start,end){
   yearDf <- data.frame()
   yearDf <- df %>% subset(year>=start&year<=end)
-  saveName <- paste0("pim",start,"to",end,".rds")
+  saveName <- paste0(f,"Result",start,"to",end,".rds")
+  cat(saveName," saving...\n")
   saveRDS(yearDf,saveName)
+  cat(saveName," complete save...\n")
   
 }
-readRdsByYear <- function(start,end){
+
+getComorbidityRdsByYear <- function(f,start,end){
   yearDf <- data.frame()
-  fileName <- paste0("pim",start,"to",end,".rds")
+  fileName <- paste0(f,"Result",start,"to",end,".rds")
   cat(fileName," reading...\n")
   yearDf <- readRDS(fileName)
-  cat(fileName," read complete\n")
+  cat(fileName," complete read\n")
   return(yearDf)
+}
+
+setRdsByYear <- function(df,f,start,end){
+  yearDf <- data.frame()
+  yearDf <- df %>% subset(year>=start&year<=end)
+  saveName <- paste0(f,start,"to",end,".rds")
+  cat(saveName," saving...\n")
+  saveRDS(yearDf,saveName)
+  cat(saveName," complete save...\n")
+  
+}
+getRdsByYear <- function(f,start,end){
+  yearDf <- data.frame()
+  fileName <- paste0(f,start,"to",end,".rds")
+  cat(fileName," reading...\n")
+  yearDf <- readRDS(fileName)
+  cat(fileName," complete read\n")
+  return(yearDf)
+}
+
+setRdsEachYear <- function(df,f,start,end){
+  for(i in start:end){
+    setRdsByYear(df,f,i,i)
+  }
+}
+#comorbidity list extraction ==========================================
+getComorbidityColumn <- function(comorbidiTyDf){
+  
+  
+  splitPimReturnDf <- function(x){
+    splitS <- unlist(strsplit(x,","))
+    return(splitS)
+  }
+  
+  chChr <- function(x){
+    temp <- as.character(x)
+    temp <- trimws(temp)
+    return(temp)
+  }
+  
+  checkCormorbidity <- function(x){
+    result <-data.frame()
+    count <-0
+    tempStr <-NULL
+    trimStr <- trimws(as.character(x))
+    tempDf <- splitAndReturnDf(trimStr)
+    for(i in 1:length(tempDf)){
+      index <- which(conditionList == tempDf[[i]])
+      if(length(index) >0){
+        cat("Comorbidity : ",tempDf[[i]],"\n")
+        count <- count +1
+        if(length(tempStr)==0){
+          tempStr <-c(tempDf[[i]])
+        }
+        else{
+          tempStr <- paste(tempStr,tempDf[[i]],sep=",")
+        }
+      }else{
+        print(tempDf[[i]])
+      }
+    }
+    
+    if(count==0){
+      result <- data.frame(cbdCount=c(count),cbdList=c("x"))
+    }else{
+      result <- data.frame(cbdCount=c(count),cbdList=c(tempStr))
+    }
+    # print(result)
+    return(result)
+    # result <- grepSearch(t)
+    # return(result)
+  }
+  listXlsx <- getInformXlsx("condition_inform.xlsx")
+  listXlsx
+  
+  dtx <- listXlsx %>% select(condition_concept_id)
+  dtx
+  conditionTotalChr<-apply(dtx,1,chChr)
+  conditionTotalChr
+  conditionList <- splitPimReturnDf(conditionTotalChr)
+  conditionList <- as.data.frame(conditionList)
+  names(conditionList) <- c("id")
+  head(conditionList)
+  conditionList
+  # 
+  # l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
+  # l
+  # totalTable <- l
+  # 
+  # 
+  # totalTable <- readRdsByYear(start,end)
+  # totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
+  # 
+  # totalTable <-l
+  # 
+  
+  
+  
+  totalTable <- comorbidiTyDf %>% select(CONDITION_CONCEPT_ID)
+  
+  conditionListCount <- apply(totalTable,1,checkCormorbidity)
+  conditionListCount
+  comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
+  comorbidityDf
+  head(comorbidityDf)
+  return(comorbidityDf)
+}
+# comorbidity result save to RDS========================
+clacAndSaveComorbidity <- function(content,startYear,endYear){
+  
+  for(i in startYear:endYear){
+    tempDf <- getRdsByYear(content,i,i)
+    resultDf <- getComorbidityColumn(tempDf)
+    setComorbidityRdsByYear(resultDf,content,i,i)
+  }
+  
 }
