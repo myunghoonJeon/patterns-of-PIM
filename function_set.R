@@ -534,3 +534,21 @@ clacAndSavePim <- function(content,startYear,endYear){
     setComorbidityRdsByYear(resultDf,content,i,i)
   }
 }
+#read Pim list by Year and binds PIM rows
+getPimBindRows <-function(startYear,endYear){
+  temp <- data.frame()
+  c <-0
+  for(i in startYear:endYear){
+    df <- getPimRdsByYear("pim",i,i)
+    if(c==0){
+      cat(i," - ","\n")
+      temp <- df
+    }else{
+      cat(i-1," - ",i,"\n")
+      temp <- bind_rows(temp,df)  
+    }
+    c <- c+1
+    
+  }
+  return(temp)
+}
