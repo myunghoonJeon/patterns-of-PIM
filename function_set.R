@@ -133,12 +133,18 @@ getRatioAge <- function(df){
                                                             manPer = man/totalCount$count*100,
                                                             woman = woman/totalCount$count*100)
   print(ageSumRatio)
-  
-  print(ageRatio)
+
   
   
 }
-
+#get pims per prescription ========================================================
+getPimsPerPrescription <- function(df){
+  pim0 <- df %>% subset(pimCount==0) %>% summarise(count = n())
+  pim1 <- df %>% subset(pimCount==1) %>% summarise(count = n()) 
+  pim2 <- df %>% subset(pimCount==2) %>% summarise(count = n()) 
+  pim3 <- df %>% subset(pimCount>=3) %>% summarise(count = n()) 
+  returnDf <- data.frame(criteria=c("0","1","2","3>="),pimCount=c(pim0$count,pim1$count,pim2$count,pim3$count))
+}
 
 #excel load  ======================================================================
 getInformXlsx <- function(file){
@@ -148,11 +154,6 @@ getInformXlsx <- function(file){
   drug_inform <- read.xlsx(file,1)
   return(drug_inform)
 }
-#get sd   ======================================================================
-getSd <- function(df){
-  
-}
-
 
 #drug status ======================================================================
 getMeanSd <- function(tt,str){
