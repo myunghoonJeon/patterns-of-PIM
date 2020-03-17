@@ -244,7 +244,9 @@ search <- function(df){
 searchCondition <- function(input){
   for(i in 1:length(cl)){
     grepResult <- grep(input,cl[[i]]$condition_concept_id)
-    if(length(grepResult)>0){
+    len <- length(grepResult)
+    if(len>0){
+      cat("[[ MATCHING ]] == ",input,"== [[ INDEX : ",grepResult," ]]\n")
       return(cl[[i]]$condition_name)
     }
   }
@@ -252,12 +254,12 @@ searchCondition <- function(input){
 
 getConditionStaticCount <- function(df){
   conditionList <- apply(df,1,searchCondition)
-  print("1")
+  print("[COMPLETE APPLY]")
   conditionList <- unlist(conditionList)
-  print("2")
   conditionList <- as.data.frame(conditionList)
-  print("3")
+  print("[TRASLATE DATA FRAME]")
   conditionList <- conditionList %>% group_by(conditionList) %>% summarise(count = n())
+  print("[COMPLETE GROUPING]")
   conditionList
 }
 #grep str
@@ -487,7 +489,7 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
     # result <- grepSearch(t)
     # return(result)
   }
-  listXlsx <- getInformXlsx("condition_inform.xlsx")
+  listXlsx <- getInformXlsx("comorbidity_List.xlsx")
   listXlsx
   
   dtx <- listXlsx %>% select(condition_concept_id)
@@ -499,24 +501,19 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
   names(conditionList) <- c("id")
   head(conditionList)
   conditionList
-  # 
-  # l <- data.frame(list = c("1384360,1300978,1597756","196048","1203949"))
-  # l
-  # totalTable <- l
-  # 
-  # 
-  # totalTable <- readRdsByYear(start,end)
-  # totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
-  # 
-  # totalTable <-l
-  # 
-  totalTable <- comorbidiTyDf %>% select(CONDITION_CONCEPT_ID)
+
+  test <- readRDS("onlyPimTable.rds")
+  test
+  totalTable <- test %>% select(CONDITION_CONCEPT_ID)
   
   conditionListCount <- apply(totalTable,1,checkCormorbidity)
   conditionListCount
   comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
-  comorbidityDf
-  cat("[[[ complete : ",year," ]]]\n")
+  # comorbidityDf
+  # summary(comorbidityDf)
+  # comorbidityResultDf <- bind_cols(test,comorbidityDf)
+  # saveRDS(comorbidityResultDf,"totalResultTable.rds")
+  # cat("[[[ complete : ",year," ]]]\n")
   return(comorbidityDf)
 }
 # comorbidity result save to RDS========================
@@ -773,3 +770,46 @@ getRatioAgePim <- function(df){
 total <- readRDS("totalPimTable0317.rds")
 total
 getRatioAgePim(total)
+# No. of chronic diseases per prescription, mean (SD) =====================================
+total <- readRDS("totalResultTable.rds")
+str(total)
+# mean sd
+getDfGender <- function(df){
+  m <- df %>% subset(trimws(GENDER)=="M")
+  w <- df %>% subset(trimws(GENDER)=="F")
+  return(list(man=m,woman=w))
+}
+
+getMeanSdPerGender <- function(df){
+  ms <- function(df){
+    mean <- df %>% select(cbdCount) %>% summarise(mean=mean(cbdCount))
+    sd <- df %>% select(cbdCount) %>% summarise(sd=sd(cbdCount))
+    return(c(mean$mean,sd$sd))
+  }
+  manTotal <- df %>% subset(trimws(GENDER)=="M")
+  womanTotal <- df %>% subset(trimws(GENDER)=="F")
+  return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
+}
+meanSd <- getMeanSdPerGender(total)
+meanSd
+
+getCount1234 <- function(df){
+  g5 <- function(x){
+    g0 <- x %>% subset(cbdCount==0) %>% summarise(count = n())
+    g1 <- x %>% subset(cbdCount==1) %>% summarise(count = n())
+    g2 <- x %>% subset(cbdCount==2) %>% summarise(count = n())
+    g3 <- x %>% subset(cbdCount==3) %>% summarise(count = n())
+    g4over <- x %>% subset(cbdCount>=4) %>% summarise(count = n())
+    return(c(g0$count,g1$count,g2$count,g3$count,g4over$count))
+  }
+  
+  gender <- getDfGender(df)
+  t <- g5(df)
+  m <- g5(gender$man)
+  w <- g5(gender$woman)
+  return(data.frame(criteria=c("0","1","2","3",">=4"),total=t,man=m,woman=w))
+}
+
+count1234 <- getCount1234(total)
+count1234
+# 
