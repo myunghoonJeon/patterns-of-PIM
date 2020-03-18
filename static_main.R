@@ -81,22 +81,15 @@ sdDrug <- data.frame(total=sdDrug$sd,
                      man=sdDrugMan$sd,
                      woman=sdDrugWoman$sd)
 sdDrug
-#약물 데이터 통계
-drugStatus <- getDrugStatus(totalTable)
-drugStatus
-
-test <- drugStatic %>% filter(PERSON_ID==14084 & CONDITION_START_DATE=='2011-10-12')
-test
-
-splitDrug <- unlist(strsplit(test$DRUG_CONCEPT_ID,","))
-splitDrug 
-head(drug_inform)
 
 #condition 통계 ( 특정한 만성질환에 대한 통계 시작)
-conditionListXlsx <- getInformXlsx("condition_inform.xlsx")
-conditionListXlsx
+totalTable <- readRDS("totalResultTable.rds")
+tt <- totalTable %>% subset(cbdCount>0) %>% select(cbdList,pimList)
+tt
+comobidityListXlsx <- getInformXlsx("Comorbidity_List.xlsx")
+comobidityListXlsx
 
-conditionStatic <- getCondtionCountStatic(conditionListXlsx)
+conditionStatic <- getCondtionCountStatic(comobidityListXlsx)
 conditionStatic %>% arrange(desc(count))
 
 conditionStaticList <- getConditionListStatic(conditionListXlsx)
@@ -118,13 +111,16 @@ womanInput
 getConditionStaticCount(womanInput)
 
 # 만성질환 데이터 전처리 (funciton_set.R로 옮길 예정 )
-
+totalTable <- readRDS("onlyPimTable.rds")
+totalTable
+conditionListXlsx <- getInformXlsx("Comorbidity_List.xlsx")
 conditionTotal <- totalTable %>% select(CONDITION_CONCEPT_ID)
 
 splitAndReturnDf <- function(x){
   splitS <- unlist(strsplit(x,","))
   return(splitS)
 }
+str(conditionListXlsx)
 
 clx <- conditionListXlsx %>% select(condition_concept_id)
 clx
@@ -161,11 +157,8 @@ sf <- function(x){
   # result <- grepSearch(t)
   # return(result)
 }
-l <- data.frame(list = c("195483,200054","196048","1203949"))
-l <- conditionTotal
-l
 
-cbdDf <- apply(l,1,sf)
+cbdDf <- apply(totalTable,1,sf)
 cbdDf <- as.data.frame(cbdDf)
 names(cbdDf) <- c("cbdCount")
 cbdDf <- as.data.frame(cbdDf)
@@ -198,6 +191,11 @@ totalWithGender <- cbind(totalWithGender,cbdDf)
 totalWithGender
 totalTable
 #전체 대상 (만성질환 으로만 통계 가능)
+
+## 최종 테이블 (만성질환 /PIM ) 포함 테이블 불러와서 시작
+totalTable <- readRDS("totalResultTable.rds")
+cbdDf<- totalTable
+##========================================================
 sdCbdTotal <- cbdDf %>% summarise(sd = sd(cbdCount))
 sdCbdTotal
 meanCbdTotal <- cbdDf %>% summarise(mean = mean(cbdCount))
@@ -344,6 +342,46 @@ manYear <- manYear %>% select(man)
 staticYear <- cbind(totalYear,manYear)
 staticYear <- staticYear %>% group_by(year,total,man)%>%  summarise(woman = (total-man))
 staticYear
-# PIM 처방전에서 PIM에 해당하는 약물 통계
 
+# PIM 처방전에서 PIM에 해당하는 약물 통계
+totalPim <- readRDS("onlyPimTable.rds")
+totalPim <- totalPim %>% select(pimList)
+totalPim
+splitPim <- splitAndReturnDf(totalPim)
+
+# 테이블2 pim 별로 사용된 수
+pimDf <- readRDS("totalResultTable.rds")
+pimDf
+#total
+pimPerDescription <- getPimPerDscription(pimDf)
+totalPPD <- pimPerDescription
+count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
+count
+#man
+pimManDf <- pimDf %>% subset(trimws(GENDER)=="M")
+pimPerDescription <- getPimPerDscription(pimDf)
+pimPerDescription
+count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
+count
+manPPD <- pimPerDescription
+#woman
+pimWomanDf <- pimDf %>% subset(trimws(GENDER)=="F")
+pimPerDescription <- getPimPerDscription(pimWomanDf)
+pimPerDescription
+pimPerDescription[is.na(pimPerDescription)]<-0
+pimPerDescription
+count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
+count
+womanPPD <- pimPerDescription
+
+
+
+pimCountListPerYear <- list()
+getPimCountPerYear <- function(start,end){
+  for(i in start:end){
+    yearDf <- pimDf %>% subset(year==i)
+    yearDf <- getPimPerDscription(yearDf)
+    
+  }  
+}
 

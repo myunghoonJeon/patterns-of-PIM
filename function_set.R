@@ -597,20 +597,14 @@ getPimNameMatchingResult <- function(df,year){
     }else{
       result <- data.frame(pimCount=c(count),pimList=c(tempStr))
     }
-    # print(result)
+    
     return(result)
-    # result <- grepSearch(t)
-    # return(result)
+    
   }
   # drugListXlsx <- getInformXlsx("drug_inform.xlsx")
   # drugListXlsx
-  pimTotal <- readRDS("onlyPimTable.rds")
+  pimTotal <- readRDS("totalResultTable.rds")
   pimTotal
-  pimTotal <- pimTotal %>% subset(pimCount>0) %>% arrange(desc(pimCount))
-  pimTotal
-  pimTotal <- pimTotal %>% group_by(pimCount) %>% summarise(count = n())
-  testC <- pimTotal %>% summarise(ss = sum(count))
-  testC
   pimTotal<-apply(pimTotal,1,chr)
   pimTotal
   drugList <- splitPimReturnDf(drugTotalChr)
@@ -618,11 +612,6 @@ getPimNameMatchingResult <- function(df,year){
   names(drugList) <- c("id")
   head(drugList)
   drugList
-  
-  l <- data.frame(list = c("42901955","1384360,1300978,1597756","196048","1203949"))
-  
-  # totalTable <- df
-  # totalTable <- totalTable %>% select(DRUG_CONCEPT_ID)
   
   # totalTable <- l
   
@@ -812,4 +801,138 @@ getCount1234 <- function(df){
 
 count1234 <- getCount1234(total)
 count1234
-# 
+
+
+# Table 2. Patterns of PIM use according to various characteristics 
+#PIM COUNT
+total <- readRDS("totalResultTable.rds")
+
+total
+
+totalPimCount <- total %>% summarise(sum(pimCount))
+manPimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
+womanPimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
+totalPimCount
+manPimCount
+womanPimCount
+
+#table2 exposure patterns of the study population to individual PIMs during the study period
+
+srdf <- function(x){
+  splitS <- unlist(strsplit(x,","))
+  resultDf <- as.data.frame(splitS)
+  return(resultDf)
+}
+
+getCbdCount <- function(df){
+  cbdList <- as.character(df['id'])
+  pimCount <- df['pCount']
+  
+  cat(cbdList," - ",pimCount,"\n")
+  
+  tempDf <- srdf(cbdList)
+  pc <- as.character(pimCount)
+  tempDf<-tempDf %>% mutate(pim=c(pc))
+  # cat(df['id']," <-> ",df['pCount'],"\n")
+  return(tempDf)
+}
+
+# result <- apply(cbd,1,getCbdCount)
+# resultDf <- do.call(rbind.data.frame, result)
+# resultDf
+# str(resultDf)
+# comorGroup <- resultDf %>% group_by(splitS) %>% summarise(pimSum = sum(as.numeric(pim)))
+# comorGroup
+#get comorbidity per pim count
+# checkSum <- comorGroup %>% summarise(c = sum(pimSum))
+# checkSum
+
+#xlsx setting
+getPimPerDscription <- function(input){
+  
+  chrr <- function(x){
+    temp <- as.character(x)
+    temp <- trimws(temp)
+    return(temp)
+  }
+  
+  splitDf <- function(x){
+    sp <- strsplit(x,",")
+    print(sp)
+    return(sp)
+  }
+  
+  splitDfXlsx <- function(x){
+    sp <- unlist(strsplit(x,","))
+    print(sp)
+    return(sp)
+  }
+  
+  getPimListXlsx <- function(df){
+    pName <- trimws(as.character(df['name']))
+    pId <- as.character(df['id'])
+    tempDf <- splitDfXlsx(pId)
+    tempDf <- data.frame(tempDf)
+    tempDf <- tempDf %>% mutate(id=c(pName))
+    return(tempDf)
+  }
+  
+  
+  total<-input
+  # total <- readRDS("totalResultTable.rds")
+  # total <- total %>% subset(trimws(GENDER)=="M")
+  onlyPim <- total %>% select(pimList)
+  onlyPim <- as.data.frame(onlyPim)
+  onlyPim
+  
+  splitPim <- apply(onlyPim,1,splitDf)
+  pimDf <- do.call(rbind.data.frame, splitPim)
+  pimGroup <- pimDf %>% group_by(pimList) %>% summarise(count = n())
+  pimGroup
+  names(pimGroup) <- c("id","count")
+  
+  drugInform <- getInformXlsx("drug_inform.xlsx")
+  names(drugInform) <- c("name","id") 
+  
+  drugNames <- drugInform %>% select(name)
+  drugNames <- drugNames %>% arrange(name)
+  drugNames
+  
+  pimName <- apply(drugInform,1,getPimListXlsx)
+  
+  
+  pimList <- do.call(rbind.data.frame, pimName)
+  names(pimList) <- c("id","name")
+  pimList
+  
+  mergePim1 <- merge(pimGroup,pimList,key='id',all=F)
+  mergePim1
+  mergePim <- mergePim %>% arrange(name) %>% select(name,count)
+  totalSum <- mergePim %>% summarise(sum(count))
+  mergePim <- ungroup(mergePim)
+  totalSum
+  mergePim <- merge(drugNames,mergePim,key='name',all=T)
+  mergePim[is.na(mergePim)]<-0
+  mergePim
+  
+  
+  tt <-function(df){
+    n <- df['name']
+    print(n)
+    cnt <-as.numeric(trimws(df['count']))
+    print(cnt)
+    p <- round(cnt/totalSum*100,3)
+    if(p==0){
+      p=0
+    }
+    c(name=c(n),count=c(cnt),percent=c(p))
+  }
+  res <- apply(mergePim,1,tt)
+  str(res)
+  resDf <- do.call(rbind.data.frame, res)
+  names(resDf) <- c("name","id","percent")
+  resDf
+  
+  
+  return(resDf)
+}
