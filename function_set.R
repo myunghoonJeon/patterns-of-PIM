@@ -858,13 +858,13 @@ getPimPerDscription <- function(input){
   
   splitDf <- function(x){
     sp <- strsplit(x,",")
-    print(sp)
+    # print(sp)
     return(sp)
   }
   
   splitDfXlsx <- function(x){
     sp <- unlist(strsplit(x,","))
-    print(sp)
+    # print(sp)
     return(sp)
   }
   
@@ -887,7 +887,6 @@ getPimPerDscription <- function(input){
   
   splitPim <- apply(onlyPim,1,splitDf)
   pimDf <- do.call(rbind.data.frame, splitPim)
-  str(pimDf)
   pimGroup <- pimDf %>% group_by(pimList) %>% summarise(count = n())
   pimGroup <- ungroup(pimGroup)
   names(pimGroup) <- c("id","count")
@@ -927,30 +926,30 @@ getPimPerDscription <- function(input){
     c(name=c(n),count=c(cnt),percent=c(p))
   }
   
-  res <- apply(mergePim,1,tt)
-  str(res)
-  resDf <- do.call(rbind.data.frame, res)
-  names(resDf) <- c("name","count","percent")
-  temp <- resDf
-  resDf
-  class(resDf)
-  str(resDf)
-  
-  resDf$name <- as.character(resDf$name)
-  str(resDf)
-  resDf
-  resDf[,'count'] <- as.numeric(resDf[,'count'])
-  str(resDf)
-  resDf
-  
-  resDf[,'count'] <- as.numeric(as.character(resDf[,'count']))
-  str(resDf)
-  
-  resDf
-  return(resDf)
+  # res <- apply(mergePim,1,tt)
+  # resDf <- do.call(rbind.data.frame, res)
+  # names(resDf) <- c("name","count","percent")
+  return(mergePim)
 }
 #sankey
-networkD3::sankeyNetwork(Links = MYLIST$links, Nodes = MYLIST$nodes, Source = "source",
-                         Target = "target", Value = "value", NodeID = "name", 
-                         fontSize = 12, nodeWidth = 30,sinksRight = FALSE)
+# networkD3::sankeyNetwork(Links = MYLIST$links, Nodes = MYLIST$nodes, Source = "source",
+#                          Target = "target", Value = "value", NodeID = "name", 
+#                          fontSize = 12, nodeWidth = 30,sinksRight = FALSE)
 
+ttt <- data.frame(a=c(1,2,3),b=c(4,5,6))
+kkk <- data.frame(a=c(1,2,3),c=c(4,5,6))
+
+for(i in 1:5){
+  names(kkk) <- c("a",i)
+  ttt <- merge(ttt,kkk,key='a',all=T)
+}
+ttt
+
+names(kkk) <- c("a",200)
+kkk
+ttt
+ttt <- merge(ttt,kkk,key='a',all.x=TRUE)
+ttt
+names(kkk) <- c("a",300)
+ttt <- merge(ttt,kkk,key='a')
+ttt

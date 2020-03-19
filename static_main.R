@@ -43,8 +43,9 @@ ratioGender
 
 # 나이 통계 (성별) 표준편차 / 평균
 # 전체
-meanAgeTotal <- totalTable %>% summarise(mean = mean(AGE))
-sdAgeTotal <- totalTable %>% summarise(sd = sd(totalTable$AGE))
+totalTable <- readREDS("totalResultTable.rds")
+meanAgeTotal <- totalTable %>% summarise(mean = round(mean(AGE),3))
+sdAgeTotal <- totalTable %>% summarise(sd = round(sd(totalTable$AGE),3))
 meanAgeTotal
 sdAgeTotal
 
@@ -344,7 +345,7 @@ staticYear <- staticYear %>% group_by(year,total,man)%>%  summarise(woman = (tot
 staticYear
 
 # PIM 처방전에서 PIM에 해당하는 약물 통계
-totalPim <- readRDS("onlyPimTable.rds")
+# totalPim <- readRDS("onlyPimTable.rds")
 totalPim <- totalPim %>% select(pimList)
 totalPim
 splitPim <- splitAndReturnDf(totalPim)
@@ -352,29 +353,62 @@ splitPim <- splitAndReturnDf(totalPim)
 # 테이블2 pim 별로 사용된 수
 pimDf <- readRDS("totalResultTable.rds")
 pimDf
+str(pimDf)
+
 #total
 pimPerDescription <- getPimPerDscription(pimDf)
 totalPPD <- pimPerDescription
-count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
-count
+startPPD <- totalPPD %>% select(name,count)
+startPPD
+
+tempPPD <- data.frame()
+tempPPD
+count <- 0
+for(i in 1999:2018){
+  yearPPD <- pimDf %>% subset(year==i)
+  resultPPD <- getPimPerDscription(yearPPD)
+  names(resultPPD) <- c('name',i)
+  if(count == 0){
+    tempPPD <- resultPPD
+    cat("==",i,"== NO MERGE ==",count,"\n")
+    print(head(tempPPD))
+  }else{
+    tempPPD <- merge(tempPPD,resultPPD,key='name',all=T)
+    cat("==",i,"== OK MERGE ==",count,"\n")
+    print(head(tempPPD))
+  }
+  count <- count +1
+}
+
+head(tempPPD)
+
+write.xlsx(tempPPD,"pimByYear.xlsx")
+
+# totalPPD$count <- as.numeric(as.character(totalPPD$count))
+# test <- totalPPD 
+# test$count <- as.character(test$count)
+# str(test)
+
 #man
 pimManDf <- pimDf %>% subset(trimws(GENDER)=="M")
-pimPerDescription <- getPimPerDscription(pimDf)
-pimPerDescription
-count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
-count
+pimPerDescription <- getPimPerDscription(pimManDf)
 manPPD <- pimPerDescription
+
 #woman
 pimWomanDf <- pimDf %>% subset(trimws(GENDER)=="F")
 pimPerDescription <- getPimPerDscription(pimWomanDf)
-pimPerDescription
 pimPerDescription[is.na(pimPerDescription)]<-0
-pimPerDescription
 count <- pimPerDescription %>% filter(!is.na(count)) %>%  summarise(sum=sum(count))
 count
 womanPPD <- pimPerDescription
 
+totalPPD
+manPPD
+womanPPD
 
+head(totalPPD)
+head(manPPD)
+head(womanPPD)
 
 pimCountListPerYear <- list()
 getPimCountPerYear <- function(start,end){
