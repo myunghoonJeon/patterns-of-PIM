@@ -878,7 +878,7 @@ getPimPerDscription <- function(input){
   }
   
   
-  total<-input
+  total<-input  
   # total <- readRDS("totalResultTable.rds")
   # total <- total %>% subset(trimws(GENDER)=="M")
   onlyPim <- total %>% select(pimList)
@@ -887,12 +887,15 @@ getPimPerDscription <- function(input){
   
   splitPim <- apply(onlyPim,1,splitDf)
   pimDf <- do.call(rbind.data.frame, splitPim)
+  str(pimDf)
   pimGroup <- pimDf %>% group_by(pimList) %>% summarise(count = n())
-  pimGroup
+  pimGroup <- ungroup(pimGroup)
   names(pimGroup) <- c("id","count")
+  totalCount <- pimGroup %>% summarise(sum = sum(count))
+  totalCount
   
   drugInform <- getInformXlsx("drug_inform.xlsx")
-  names(drugInform) <- c("name","id") 
+  names(drugInform) <- c("name","id")
   
   drugNames <- drugInform %>% select(name)
   drugNames <- drugNames %>% arrange(name)
@@ -900,22 +903,18 @@ getPimPerDscription <- function(input){
   
   pimName <- apply(drugInform,1,getPimListXlsx)
   
-  
   pimList <- do.call(rbind.data.frame, pimName)
   names(pimList) <- c("id","name")
   pimList
   
-  mergePim1 <- merge(pimGroup,pimList,key='id',all=F)
-  mergePim1
+  mergePim <- merge(pimGroup,pimList,key='id',all=F)
   mergePim <- mergePim %>% arrange(name) %>% select(name,count)
   totalSum <- mergePim %>% summarise(sum(count))
   mergePim <- ungroup(mergePim)
-  totalSum
   mergePim <- merge(drugNames,mergePim,key='name',all=T)
   mergePim[is.na(mergePim)]<-0
   mergePim
-  
-  
+
   tt <-function(df){
     n <- df['name']
     print(n)
@@ -927,12 +926,31 @@ getPimPerDscription <- function(input){
     }
     c(name=c(n),count=c(cnt),percent=c(p))
   }
+  
   res <- apply(mergePim,1,tt)
   str(res)
   resDf <- do.call(rbind.data.frame, res)
-  names(resDf) <- c("name","id","percent")
+  names(resDf) <- c("name","count","percent")
+  temp <- resDf
+  resDf
+  class(resDf)
+  str(resDf)
+  
+  resDf$name <- as.character(resDf$name)
+  str(resDf)
+  resDf
+  resDf[,'count'] <- as.numeric(resDf[,'count'])
+  str(resDf)
   resDf
   
+  resDf[,'count'] <- as.numeric(as.character(resDf[,'count']))
+  str(resDf)
   
+  resDf
   return(resDf)
 }
+#sankey
+networkD3::sankeyNetwork(Links = MYLIST$links, Nodes = MYLIST$nodes, Source = "source",
+                         Target = "target", Value = "value", NodeID = "name", 
+                         fontSize = 12, nodeWidth = 30,sinksRight = FALSE)
+
