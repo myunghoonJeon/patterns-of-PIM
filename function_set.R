@@ -4,6 +4,8 @@
 # install.packages("devtools")
 # devtools::install_github("ohdsi/DatabaseConnectorJars")
 # devtools::install_github("ohdsi/DatabaseConnector")
+# 
+
 setwd("c:\\Git\\patterns-of-PIM")
 source("propertiesParameters.R")
 cl <- data.frame()
@@ -11,17 +13,19 @@ library(DatabaseConnector)
 
 # db connection =============================================================================
 getDbConnection <- function(){
-  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms=dbParameter$dbms ,
+  dbParameter <- dbP
+  dbParameter
+  connectionDetails <- DatabaseConnector::createConnectionDetails(dbms=dbParameter$dbms,
                                                server=dbParameter$server,
                                                user=dbParameter$user,
                                                password=dbParameter$password,
                                                schema=dbParameter$schema)
-  conn <- connect(connectionDetails)
-
+  
+  conn <- DatabaseConnector::connect(connectionDetails)
+  
   return(conn)
-
 }
-#setDrugConditionCount ======================================================================
+#set Drug count Condition count ======================================================================
 getDrugConditionCount <- function(totalTable){
   addconditionDrugCount <- totalTable %>% group_by(PERSON_ID,AGE,CONDITION_START_DATE) %>%
     summarise(CONDITION_CONCEPT_ID,
@@ -502,10 +506,11 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
   head(conditionList)
   conditionList
 
-  test <- readRDS("onlyPimTable.rds")
-  test
-  totalTable <- test %>% select(CONDITION_CONCEPT_ID)
-  
+  # test <- readRDS("onlyPimTable.rds")
+  # test
+  totalTable <- comorbidiTyDf
+  totalTable <- totalTable %>% select(CONDITION_CONCEPT_ID)
+ 
   conditionListCount <- apply(totalTable,1,checkCormorbidity)
   conditionListCount
   comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
@@ -513,7 +518,7 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
   # summary(comorbidityDf)
   # comorbidityResultDf <- bind_cols(test,comorbidityDf)
   # saveRDS(comorbidityResultDf,"totalResultTable.rds")
-  # cat("[[[ complete : ",year," ]]]\n")
+  cat("[[[ complete : ",year," ]]]\n")
   return(comorbidityDf)
 }
 # comorbidity result save to RDS========================
@@ -931,25 +936,28 @@ getPimPerDscription <- function(input){
   # names(resDf) <- c("name","count","percent")
   return(mergePim)
 }
-#sankey
-# networkD3::sankeyNetwork(Links = MYLIST$links, Nodes = MYLIST$nodes, Source = "source",
-#                          Target = "target", Value = "value", NodeID = "name", 
-#                          fontSize = 12, nodeWidth = 30,sinksRight = FALSE)
 
-ttt <- data.frame(a=c(1,2,3),b=c(4,5,6))
-kkk <- data.frame(a=c(1,2,3),c=c(4,5,6))
-
-for(i in 1:5){
-  names(kkk) <- c("a",i)
-  ttt <- merge(ttt,kkk,key='a',all=T)
+# combine comorbidity dataframes 
+getCombineComorbidityDataframes <- function(start,end){
+  df <- data.frame()
+  count <- 0
+  for(i in start:end){
+    temp <- getRdsByYear("comorbidityResult",i,i)
+    df<- bind_rows(df,temp)
+    # if(count==0){
+    #   cat(i,"(year) dataframe setting\n")
+    #   df <- temp
+    #   dc <- df %>% summarise(count = n())
+    #   print(dc$count)
+    # }else{
+    #   cat((i-1),"-",i," combine\n")  
+    #   bind_rows(df,temp)
+    #   tc <- temp %>% summarise(count = n())
+    #   dc <- df %>% summarise(count = n())
+    #   cat(tc$count," add - ",dc$count,"\n")
+    # }
+    # count <- count +1
+  }
+  print("complete combine")
+  return(df)
 }
-ttt
-
-names(kkk) <- c("a",200)
-kkk
-ttt
-ttt <- merge(ttt,kkk,key='a',all.x=TRUE)
-ttt
-names(kkk) <- c("a",300)
-ttt <- merge(ttt,kkk,key='a')
-ttt

@@ -3,15 +3,20 @@ library("dplyr")
 source("function_set.r")
 
 # conn <- getDbConnection()
-# 
 # sql <- getTotalTableQuerry()
-# 
 # totalTable <- querySql(conn,sql)
-
+# totalTable
+# saveRDS(totalTable,"totalTable.rds")
 conditionCountSumByGender <- getSumConditionCount(totalTable)
 conditionCountSumByGender
+
+# 
+# df1 <- data.frame(name=c("abc","abc","bbb","jmh","jmh","yym"),age=c(30,31,33,36,33,43))
+# 
+# df2 <- data.frame(name=c("abc","jmh","abc"),age=c(30,36,31),grade=c(1,2,3))
+
+
 #PIM characteristics
-totalTable <- readRDS("totalTableWithPim.rds")
 
 totalPimTable <- totalTable %>% subset(pimCount>0)
 totalPimTable
@@ -112,7 +117,7 @@ womanInput
 getConditionStaticCount(womanInput)
 
 # 만성질환 데이터 전처리 (funciton_set.R로 옮길 예정 )
-totalTable <- readRDS("onlyPimTable.rds")
+# totalTable <- readRDS("withoutPim.rds")
 totalTable
 conditionListXlsx <- getInformXlsx("Comorbidity_List.xlsx")
 conditionTotal <- totalTable %>% select(CONDITION_CONCEPT_ID)
@@ -168,23 +173,28 @@ saveRDS(cbdDf,"cormorbidity.rds")
 cbdDf <- readRDS("cormorbidity.rds")
 names(cbdDf) <- c("cbdCount")
 
+#만성질환 리스트 생성하기
+totalTable <- readRDS("withoutPim.rds")
+
+inputTable <- totalTable %>% select(CONDITION_CONCEPT_ID)
+
+
+cbdList <- getComorbidityColumn(inputTable)
+
 #만성질환 리스트 계산 테스트===================================
-tyt <- readRDS("addYearTotal0315.rds")
-tyt <- ungroup(addyearTotal)
-tyt
-setRdsEachYear(tyt,"comorbidity",1998,2018)
 
-
+tyt <- readRDS("withoutPim.rds")
 tyt
+
+flag="comorbidity"
+setRdsEachYear(tyt,flag,1998,2018)
+
 content = "comorbidity"
-startYear = 2001
-endYear = 2014
+
+clacAndSaveComorbidity(content,1998,2000)
 clacAndSaveComorbidity(content,2001,2014)
 clacAndSaveComorbidity(content,2015,2018)
 
-df1999 <- getComorbidityRdsByYear(content,1999,1999)
-df1999G <- df1999 %>% group_by(cbdCount) %>% summarise(count = n())
-df1999G
 #만성질환 통계 =================================
 #데이터 결합 (전체 데이터 성별 + 만성질환 카운트)
 totalWithGender <- totalTable %>% filter(trimws(GENDER))
@@ -235,30 +245,7 @@ addyearTotal <- readRDS("addYearTotal0315.rds")
 addyearTotal <- ungroup(addyearTotal)
 addyearTotal
 
-# womanTotal <- addyearTotal %>% filter(trimws(GENDER)=="F")
-# womanTotal
-# manTotal <- addyearTotal %>% filter(trimws(GENDER)=="M")
-# manTotal 
-# setRdsByYear(addyearTotal,1999,2000)
-# setRdsByYear(addyearTotal,2001,2005)
-# setRdsByYear(addyearTotal,2006,2006)
-# setRdsByYear(addyearTotal,2007,2008)
-# setRdsByYear(addyearTotal,2009,2010)
-# setRdsByYear(addyearTotal,2011,2012)
-# setRdsByYear(addyearTotal,2013,2014)
-# setRdsByYear(addyearTotal,2015,2016)
-# setRdsByYear(addyearTotal,2017,2018)
 content = "pim"
-# setRdsEachYear(addyearTotal,content,1999,2018)
-
-# split1999to2009 <- addyearTotal %>% subset(year>=1999&year<=2009)
-# split1999to2009
-# split2010to2013 <- addyearTotal %>% subset(year>=2010&year<=2013)
-# split2010to2013
-# split2014to2015 <- addyearTotal %>% subset(year>=2014&year<=2015)
-# split2014to2015
-# split2016to2018 <- addyearTotal %>% subset(year>=2016)
-# split2016to2018
 
 clacAndSavePim(content,1999,2005)
 clacAndSavePim(content,2005,2010)
@@ -303,32 +290,6 @@ pimTotal
 totalPerson <- pimTotal %>% distinct(PERSON_ID) %>% summarise(n=n())
 manPerson <- pimManTotal %>% distinct(PERSON_ID) %>% summarise(n=n())
 womanPerson <- pimWomanTotal %>% distinct(PERSON_ID) %>% summarise(n=n())
-
-# pim1999to2009 <- split1999to2009 %>% select(DRUG_CONCEPT_ID)
-# saveRDS(pim1999to2009,"pim1999to2009.rds")
-# 
-# pim1999to2009 <- getPimInform(pim1999to2009)
-# 
-# pim1999to2009
-# View(pim1999to2009)
-# split2010to2013 <- split2010to2013 %>% select(DRUG_CONCEPT_ID)
-# split2010to2013 <- getPimInform(split2010to2013)
-# 
-# split2014to2015 <- split2014to2015 %>% select(DRUG_CONCEPT_ID)
-# split2014to2015 <- getPimInform(split2014to2015)
-# 
-# split2016to2018 <- split2016to2018 %>% select(DRUG_CONCEPT_ID)
-# split2016to2018 <- getPimInform(split2016to2018)
-# 
-# pimInput <- totalTable %>% select(DRUG_CONCEPT_ID)
-# pimInput <- pimInput %>% arrange(desc(DRUG_CONCEPT_ID))
-# pimInput
-# pimCount <- getPimInform(pimInput)
-# pimCount
-# 
-# head(test)
-# saveRDS("pimInfom.rds")
-# pimCount
 
 # 연도별 처방전 건수 분류
 totalTable <- readRDS("totalTableWithPim.rds")
@@ -379,15 +340,18 @@ for(i in 1999:2018){
   }
   count <- count +1
 }
+tempPPD
+
+lotationPPD <- t(tempPPD)
+head(lotationPPD)
+View(lotationPPD)
+
+test <- lotationPPD %>% select(phenobarbital)
 
 head(tempPPD)
 
+write.xlsx(lotationPPD,"lotationPim.xlsx")
 write.xlsx(tempPPD,"pimByYear.xlsx")
-
-# totalPPD$count <- as.numeric(as.character(totalPPD$count))
-# test <- totalPPD 
-# test$count <- as.character(test$count)
-# str(test)
 
 #man
 pimManDf <- pimDf %>% subset(trimws(GENDER)=="M")
@@ -419,3 +383,16 @@ getPimCountPerYear <- function(start,end){
   }  
 }
 
+# 만성질환 횟수 결합하기
+combineResult <- getCombineComorbidityDataframes(1998,2018)
+tt <- cbind(tyty,combineResult)
+saveRDS(tt,"withoutPimFinal.rds") #만성질환 붙이고 저장
+
+pt <- readRDS("pimTable.rds")
+
+head(pt)
+head(tt)
+pt <- pt %>% 
+final <- bind_rows(tt,pt) # 최종 결합
+
+final
