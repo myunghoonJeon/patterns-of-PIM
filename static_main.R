@@ -45,33 +45,71 @@ forGenderTable <- totalTable %>% select(AGE,GENDER)
 ratioGender <- getRatioGender(forGenderTable)
 ratioGender
 
+####
+
+library(xlsx)
+setwd("c:\\Git\\patterns-of-PIM")
+carboplatin <- read.xlsx("carboplatin.xlsx",2)
+carboplatin
+
+####
+
+
 
 # 나이 통계 (성별) 표준편차 / 평균
 # 전체
-totalTable <- readREDS("totalResultTable.rds")
-meanAgeTotal <- totalTable %>% summarise(mean = round(mean(AGE),3))
-sdAgeTotal <- totalTable %>% summarise(sd = round(sd(totalTable$AGE),3))
-meanAgeTotal
-sdAgeTotal
 
-# 남자
-ageManTalbe <- totalTable %>% filter(trimws(GENDER)=="M")
-meanAgeMan <- ageManTalbe %>% summarise(mean = mean(AGE))
-sdAgeMan <- ageManTalbe %>% summarise(sd=sd(AGE))
-meanAgeMan
-sdAgeMan
 
-# 여자
-ageWomanTable <- totalTable %>% filter(trimws(GENDER)=="F")
-meanAgeWoman <- ageWomanTable %>% summarise(mean = mean(AGE))
-sdAgeWoman <-  ageWomanTable %>% summarise(sd=sd(AGE))
-meanAgeWoman
-sdAgeWoman
+
+totalTable <- readRDS("finalTotalTable.rds")
+
+pt  <- totalTable %>% subset(pimCount>0)
+npt <- totalTable %>% subset(pimCount==0)
+getAgeMeanSd(pt)
+getAgeMeanSd(npt)
+
+apt <- pt %>% select(AGE)
+anpt <- npt %>% select(AGE)
+
+
+
+mpt <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="M")
+mnpt<- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="M")
+getAgeMeanSd(mpt)
+getAgeMeanSd(mnpt)
+
+wpt <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="F")
+wnpt<- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="F")
+getAgeMeanSd(wpt)
+getAgeMeanSd(wnpt)
+
+# t-test====================================
+
+
+
+# # meanAgeTotal <- totalTable %>% summarise(mean = round(mean(AGE),3))
+# # sdAgeTotal <- totalTable %>% summarise(sd = round(sd(totalTable$AGE),3))
+# 
+# meanAgeTotal
+# sdAgeTotal
+# 
+# # 남자
+# ageManTalbe <- totalTable %>% filter(trimws(GENDER)=="M")
+# meanAgeMan <- ageManTalbe %>% summarise(mean = mean(AGE))
+# sdAgeMan <- ageManTalbe %>% summarise(sd=sd(AGE))
+# meanAgeMan
+# sdAgeMan
+# 
+# # 여자
+# ageWomanTable <- totalTable %>% filter(trimws(GENDER)=="F")
+# meanAgeWoman <- ageWomanTable %>% summarise(mean = mean(AGE))
+# sdAgeWoman <-  ageWomanTable %>% summarise(sd=sd(AGE))
+# meanAgeWoman
+# sdAgeWoman
 
 # 나이 범위에 따른 통계 
 totalTable <- totalPimTable
 countAgeTotal <- totalTable %>% select(AGE,GENDER)
-
 getRatioAge(countAgeTotal)
 
 # 약물(beers criteria 기준) 정보 통계 (성별 기준) 백분율
@@ -88,37 +126,111 @@ sdDrug <- data.frame(total=sdDrug$sd,
                      woman=sdDrugWoman$sd)
 sdDrug
 
-#condition 통계 ( 특정한 만성질환에 대한 통계 시작)
-totalTable <- readRDS("totalResultTable.rds")
-tt <- totalTable %>% subset(cbdCount>0) %>% select(cbdList,pimList)
-tt
+#condition 통계 숫자 카운트 ( 특정한 만성질환에 대한 통계 시작)
+##만성질환별 카운트 구하는 구간 ===========Characteristics of the study population
+totalTable <- readRDS("finalTotalTable.rds")
+str(totalTable)
+head(totalTable)
+
+newtt <- subset(totalTable,select=-cbdCount)
+head(newtt)
+newtt <- subset(newtt,select=-cbdList)
+head(newtt)
+# setRdsEachYear(newtt,"new",1999,2018) #세팅
+# calcAndSaveComorbidity("new",1999,2018) #입력한 년도별 만성질환 리스트와 수를 구하고 rds저장 (완료함)
+
 comobidityListXlsx <- getInformXlsx("Comorbidity_List.xlsx")
 comobidityListXlsx
 
-conditionStatic <- getCondtionCountStatic(comobidityListXlsx)
-conditionStatic %>% arrange(desc(count))
+comorResult <- getCombineComorbidityDataframes("newResult",1999,2018)
+comorResult
+
+ccs <- comorResult %>% summarise(sum(cbdCount))
+
+ctp <- comorResult %>% subset(pimCount>0) %>% summarise(sum=sum(cbdCount))
+ctp
+ccs
+head(newtt)
+final <- cbind(newtt,comorResult)
+final
+saveRDS(final,"realFinal.rds")
+realFinal <- readRDS("realFinal.rds")
+realFinal
+
+# conditionStatic <- getCondtionCountStatic(comobidityListXlsx)
+# conditionStatic %>% arrange(desc(count))
 
 conditionStaticList <- getConditionListStatic(conditionListXlsx)
 conditionStaticList
 
 setGlobalConditionList(conditionStaticList)
-### 전체 진단 
-totalInput <- totalTable %>% select(CONDITION_CONCEPT_ID)
-totalInput <- getCondtionSplitCount(totalInput)
-getConditionStaticCount(totalInput)
+
+getComorCountPerList <- function(tt){
+  pt <- tt %>% select(pimCount,cbdCount,cbdList) %>% subset(pimCount>0&cbdCount>0)
+  pt <- pt %>% select(cbdList)
+  ptSplit <- getCondtionSplitCount(pt)
+  ptc <- getConditionStaticCount(ptSplit)
+  ptc <- as.data.frame(ptc)
+  ptc
+  
+  npt <- tt %>% select(pimCount,cbdCount,cbdList) %>% subset(pimCount==0&cbdCount>0)
+  npt <- npt %>% select(cbdList)
+  nptSplit <- getCondtionSplitCount(npt)
+  nptc <- getConditionStaticCount(nptSplit)
+  nptc <- as.data.frame(nptc)
+  nptc
+  
+  names(ptc) <- c("conditionList","pimCount")
+  names(nptc) <- c("conditionList","noPimCount")
+  rl <- merge(ptc,nptc,by='conditionList',all=T)
+  return(rl)
+}
+### 전체  - 패스
+repim <- realFinal
+print(repim %>% subset(cbdCount>0) %>% summarise(n()))
+repim %>% subset(cbdCount>0)
+
+repim <- realFinal %>% subset(pimCount>0 & cbdCount>0)
+repim <- realFinal %>% subset(pimCount==0 & cbdCount>0)
+repim
+print(repim %>% summarise(sum(cbdCount)))
+
+# a18 <- getComorbidityColumn2(repim)
+# a18
+# print(a18 %>% summarise(sum(cbdCount)))
+# 
+# gogo <- a18 %>% summarise(sum(cbdCount))
+
+cc <- repim %>% select(cbdList)
+ccc <- cc %>% subset(cbdList!='x')
+ccc
+
+ptSplit <- getCondtionSplitCount(ccc)
+head(ptSplit)
+
+ps <- ptSplit %>% subset(cbdList!='x')
+print(ptSplit %>% summarise(n()))
+
+ptc <- getConditionStaticCount(ps)
+ptc
+
+write.xlsx(ptc,"newTotalComor3.xlsx")
+
 ### 진단 - 남자
-manInput <- totalTable %>% filter(trimws(GENDER)=="M") %>% select(CONDITION_CONCEPT_ID)
-manInput <- getCondtionSplitCount(manInput)
-getConditionStaticCount(manInput)
+mt <- repim %>% subset(GENDER=="M")
+mc <- getComorCountPerList(mt)
+mc
+write.xlsx(mc,"manComor.xlsx")
+
 ### 진단 - 여자
-womanInput <- totalTable %>% filter(trimws(GENDER)=="F") %>% select(CONDITION_CONCEPT_ID)
-womanInput <- getCondtionSplitCount(womanInput)
-womanInput
-getConditionStaticCount(womanInput)
+wt <- repim %>% subset(GENDER=="F")
+wc <- getComorCountPerList(wt)
+write.xlsx(wc,"womanComor.xlsx")
 
 # 만성질환 데이터 전처리 (funciton_set.R로 옮길 예정 )
-# totalTable <- readRDS("withoutPim.rds")
+totalTable <- readRDS("withoutPim.rds")
 totalTable
+
 conditionListXlsx <- getInformXlsx("Comorbidity_List.xlsx")
 conditionTotal <- totalTable %>% select(CONDITION_CONCEPT_ID)
 
@@ -126,7 +238,7 @@ splitAndReturnDf <- function(x){
   splitS <- unlist(strsplit(x,","))
   return(splitS)
 }
-str(conditionListXlsx)
+
 
 clx <- conditionListXlsx %>% select(condition_concept_id)
 clx
@@ -142,6 +254,7 @@ comorbidityList <- splitAndReturnDf(clx)
 comorbidityList <- as.data.frame(comorbidityList)
 names(comorbidityList) <- c("id")
 head(comorbidityList)
+comorbidityList
 
 comorbidityList <- apply(comorbidityList,1,chChr)
 comorbidityList <- data.frame(comorbidityList)
@@ -173,8 +286,13 @@ saveRDS(cbdDf,"cormorbidity.rds")
 cbdDf <- readRDS("cormorbidity.rds")
 names(cbdDf) <- c("cbdCount")
 
+
+
 #만성질환 리스트 생성하기
-totalTable <- readRDS("withoutPim.rds")
+totalTable <- readRDS("pimTable.rds")
+tt <- totalTable
+tc <- tt %>% summarise(sum(cbdCount))
+tc
 
 inputTable <- totalTable %>% select(CONDITION_CONCEPT_ID)
 
@@ -183,7 +301,7 @@ cbdList <- getComorbidityColumn(inputTable)
 
 #만성질환 리스트 계산 테스트===================================
 
-tyt <- readRDS("withoutPim.rds")
+tyt <- readRDS("")
 tyt
 
 flag="comorbidity"
@@ -206,17 +324,44 @@ totalTable
 ## 최종 테이블 (만성질환 /PIM ) 포함 테이블 불러와서 시작
 totalTable <- readRDS("totalResultTable.rds")
 cbdDf<- totalTable
-##========================================================
-sdCbdTotal <- cbdDf %>% summarise(sd = sd(cbdCount))
+totalTable
+##===처방전당 숫자 숫자 계산=====================================================
+pt  <- totalTable %>% subset(pimCount>0)
+c <- pt %>% summarise(count = n())
+c
+ptc  <- totalTable %>% subset(pimCount>0& cbdCount==0)
+cc <- ptc %>% summarise(count =n())
+cc
+
+npt <- totalTable %>% subset(pimCount==0)
+
+mpt <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="M")
+mnpt<- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="M")
+
+wpt <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="F")
+wnpt<- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="F")
+#================================================================================
+
+sdCbdTotal <- pt %>% summarise(sd = sd(cbdCount))
 sdCbdTotal
-meanCbdTotal <- cbdDf %>% summarise(mean = mean(cbdCount))
+meanCbdTotal <- pt %>% summarise(mean = mean(cbdCount))
 meanCbdTotal
+
+comordityCountStatic <- getComorbidityCountStatic(pt)
+comordityCountStatic
+
+sdCbdTotal <- npt %>% summarise(sd = sd(cbdCount))
+sdCbdTotal
+meanCbdTotal <- npt %>% summarise(mean = mean(cbdCount))
+meanCbdTotal
+
 comordityCountStatic <- getComorbidityCountStatic(cbdDf)
 comordityCountStatic
+
+
 #남자
 manTotal <- totalWithGender %>% filter(trimws(GENDER)=="M")
 manTotal <- manTotal %>% select(cbdCount)
-
 sdCbdMan <- manTotal %>% summarise(sd = sd(cbdCount))
 sdCbdMan
 meanCbdToMan <- manTotal %>% summarise(mean = mean(cbdCount))
@@ -390,9 +535,217 @@ saveRDS(tt,"withoutPimFinal.rds") #만성질환 붙이고 저장
 
 pt <- readRDS("pimTable.rds")
 
+
+pt <- pt %>% select(PERSON_ID,AGE,CONDITION_START_DATE,CONDITION_CONCEPT_ID,CONDITION_COUNT,DRUG_COUNT,
+                    DRUG_CONCEPT_ID,GENDER,pimList,pimCount,year,cbdCount,cbdList)
 head(pt)
 head(tt)
-pt <- pt %>% 
-final <- bind_rows(tt,pt) # 최종 결합
+pt$year <- as.character(pt$year)
+str(pt)
+str(tt)
 
-final
+final <- rbind(tt,pt)
+#== pvalue 구하기 만성질환 
+totalTable <- readRDS("finalTotalTable.rds")
+totalTable
+
+totalComorList <- read.xlsx("mw.xlsx",1)
+totalComorList
+comorP <- getComorbidityPvalue(totalComorList)
+comorP
+
+write.xlsx(comorP,"comorP2.xlsx")
+
+## 
+totalTable <- readRDS("finalTotalTable.rds")
+totalTable
+
+withPim  <- totalTable %>% subset(pimCount>0) %>% select(AGE)
+withoutPim <- totalTable %>% subset(pimCount==0) %>% select(AGE)
+
+wp <- withPim$AGE
+wop <- withoutPim$AGE
+
+wp
+wop
+
+var.test(wp,wop)
+t.test(wp, wop,  paired = FALSE, var.equal = TRUE, conf.level = 0.95)
+
+
+mWithPim <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="M") %>% select(AGE)
+mWithoutPim <- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="M") %>% select(AGE)
+wp <- mWithPim$AGE
+wop <- mWithoutPim$AGE
+var.test(wp,wop)
+t.test(wp, wop,  paired = FALSE, var.equal = TRUE, conf.level = 0.95)
+
+wWithPim <- totalTable %>% subset(pimCount>0) %>% subset(GENDER=="F") %>% select(AGE)
+wWithoutPim <- totalTable %>% subset(pimCount==0) %>% subset(GENDER=="F") %>% select(AGE)
+wp <- wWithPim$AGE
+wop <- wWithoutPim$AGE
+var.test(wp,wop)
+t.test(wp, wop,  paired = FALSE, var.equal = TRUE, conf.level = 0.95)
+
+getVtest <- function(wp,wop){
+  var.test(wp,wop)
+}
+
+getTtest <- function(wp,wop){
+  t.test(wp, wop,  paired = FALSE, var.equal = TRUE, conf.level = 0.95)
+}
+
+repim
+
+pimRepim <- repim %>% subset(pimCount==0)
+
+my = getCount1234(pimRepim)
+my
+write.xlsx(my,"cbd1234nopim.xlsx")
+r<-data.frame()
+ip <- repim %>% subset(pimCount>0)
+pm <- ip %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+pm
+pp <- repim %>% subset(pimCount>0) %>% select(cbdCount)
+pp <- pp$cbdCount
+
+inp <- repim %>% subset(pimCount==0)
+npm <- inp %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+npm
+npp <- repim %>% subset(pimCount==0) %>% select(cbdCount)
+npp <- npp$cbdCount
+
+getVtest(pp,npp)
+getTtest(pp,npp)
+
+
+imp <- repim %>% subset(pimCount>0&GENDER=="M")
+pm <- ip %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+pm
+
+imnp <- repim %>% subset(pimCount==0&GENDER=="M")
+npm <- inp %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+npm
+
+iwp <- repim %>% subset(pimCount>0&GENDER=="F")
+pm <- ip %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+pm
+
+iwnp <- repim %>% subset(pimCount==0&GENDER=="F")
+npm <- inp %>% summarise(m = round(mean(cbdCount),3),s= round(sd(cbdCount),3))
+npm
+
+getCbdPvalue(repim)
+getAgePvalue(repim)
+
+pp <- repim %>% subset(pimCount>0)
+np <- repim %>% subset(pimCount==0)
+
+write.xlsx(getCount5(pp),"p5.xlsx")
+write.xlsx(getCount5(np),"np5.xlsx")
+
+# === 약물 5개 이상 미만에 대한 카이 스퀘어
+chisq=function(o) {
+  row.sum=apply(o,1,sum)
+  col.sum=apply(o,2,sum)
+  n=sum(o)
+  e=(row.sum %*% t(col.sum))/n
+  x=sum(((o-e)^2/e))
+  Observed=o
+  Expected=e
+  Stat=c('chisq'=x,'p-value'=pchisq(x,df=((nrow(o)-1)*(ncol(o)-1)),lower.tail=F))
+  return(list(Observed=Observed,Expected=Expected,Stat=Stat))
+}
+
+mc <-function(a,b,c,d){
+  df1 <- c(a,b)
+  df2 <- c(c,d)
+  
+  df3 <- cbind(df1,df2)
+  df3 <- as.matrix(df3)
+  chisq(df3)  
+}
+
+mc(47176,33448,598826,421608) # 하드코딩함
+mc(50141,38467,640353,492329)
+
+#약물 5개 이상 미만에 대한 평균 표준편차
+ip <- repim %>% subset(pimCount >0) %>% select(DRUG_COUNT)
+pm <- ip %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+pm
+pp <- repim %>% subset(pimCount>0) %>% select(DRUG_COUNT)
+pp
+
+inp <- repim %>% subset(pimCount==0) %>% select(DRUG_COUNT)
+npm <- inp %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+npm
+npp <- repim %>% subset(pimCount==0) %>% select(DRUG_COUNT)
+npp 
+
+getVtest(pp$DRUG_COUNT,npp$DRUG_COUNT)
+getTtest(pp$DRUG_COUNT,npp$DRUG_COUNT)
+
+imp <- repim %>% subset(pimCount>0&GENDER=="M") %>% select(DRUG_COUNT)
+pm <- imp %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+pm
+
+
+imnp <- repim %>% subset(pimCount==0&GENDER=="M") %>% select(DRUG_COUNT)
+npm <- imnp %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+npm
+
+getVtest(imp$DRUG_COUNT,imnp$DRUG_COUNT)
+getTtest(imp$DRUG_COUNT,imnp$DRUG_COUNT)
+
+iwp <- repim %>% subset(pimCount>0&GENDER=="F") %>% select(DRUG_COUNT)
+pm <- iwp %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+pm
+
+iwnp <- repim %>% subset(pimCount==0&GENDER=="F") %>% select(DRUG_COUNT)
+npm <- iwnp %>% summarise(m = round(mean(DRUG_COUNT),3),s= round(sd(DRUG_COUNT),3))
+npm
+
+getVtest(iwp$DRUG_COUNT,iwnp$DRUG_COUNT)
+getTtest(iwp$DRUG_COUNT,iwnp$DRUG_COUNT)
+
+getYearCountTable1 <- function(df){
+  gy <- function(f){
+    r <- f %>% group_by(year) %>% summarise(count = n())
+    tt <- r %>% summarise(sum = sum(count))
+    r <- ungroup(r)
+    # ra <- r %>% group_by(year) %>% summarise(avg = round(count/tt$sum*100,3 ))
+    # r <- cbind(r,ra,by='year')
+    return(r)
+  }
+  pf <- df %>% subset(pimCount>0)
+  npf <- df %>% subset(pimCount==0)
+  py <- gy(pf)
+  npy <- gy(npf)
+  result <- merge(py,npy,by='year')
+  
+  mpf <- df %>% subset(pimCount>0 & GENDER=="M")
+  mnpf <- df %>% subset(pimCount==0 & GENDER=="M")
+  mpy <- gy(mpf)
+  mnpy <- gy(mnpf)
+  result <- merge(result,mpy,by='year')
+  result <- merge(result,mnpy,by='year')
+  
+  wpf <- df %>% subset(pimCount>0 & GENDER=="F")
+  wnpf <- df %>% subset(pimCount==0 & GENDER=="F")
+  wpy <- gy(wpf)
+  wnpy <- gy(wnpf)
+  result <- merge(result,wpy,by='year')
+  result <- merge(result,wnpy,by='year')
+  
+}
+r <- getYearCount(repim)
+r 
+
+yp <- r[,6:7]
+
+yp <- as.matrix(yp)
+
+pp <- chisq(yp)
+pp <- format(pp$Stat[2],scientific=F)
+pp <- as.numeric(pp)
+pp # 년도별 P value 계산

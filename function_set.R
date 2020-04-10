@@ -146,19 +146,26 @@ getPimsPerPrescription <- function(df){
   pim0 <- df %>% subset(pimCount==0) %>% summarise(count = n())
   pim1 <- df %>% subset(pimCount==1) %>% summarise(count = n()) 
   pim2 <- df %>% subset(pimCount==2) %>% summarise(count = n()) 
-  pim3 <- df %>% subset(pimCount>=3) %>% summarise(count = n()) 
-  returnDf <- data.frame(criteria=c("0","1","2","3>="),pimCount=c(pim0$count,pim1$count,pim2$count,pim3$count))
+  pim3 <- df %>% subset(pimCount==3) %>% summarise(count = n())
+  pim4 <- df %>% subset(pimCount>=4) %>% summarise(count = n()) 
+  returnDf <- data.frame(criteria=c("0","1","2","3",">=4"),pimCount=c(pim0$count,pim1$count,pim2$count,pim3$count,pim4$count))
 }
+
 
 #excel load  ======================================================================
 getInformXlsx <- function(file){
   # install.packages("xlsx")
   library(xlsx)
   setwd("c:\\Git\\patterns-of-PIM")
-  drug_inform <- read.xlsx(file,1)
-  return(drug_inform)
+  inform <- read.xlsx(file,1)
+  return(inform)
 }
-
+#age Mean Sd =============================
+getAgeMeanSd <- function(tt){
+  meanTotal <- tt %>% summarise(mean = round(mean(AGE),3))
+  sdTotal <- tt %>% summarise(sd = round(sd(AGE),3))
+  cat("mean : ",meanTotal$mean,"  sd : ",sdTotal$sd,"\n")
+}
 #drug status ======================================================================
 getMeanSd <- function(tt,str){
   meanTotal <- tt %>% summarise(mean = mean(DRUG_COUNT))
@@ -217,7 +224,7 @@ splitAndReturnDf <- function(x){
 }
 
 getCondtionSplitCount <- function(df){
-  df <- df %>% select(CONDITION_CONCEPT_ID)
+  df <- df %>% select(cbdList)
   df <- apply(df,2,splitAndReturnDf)
   df <- as.data.frame(df)
   # df <- df %>% group_by(condition_concept_id) %>% summarise(count = n())
@@ -230,12 +237,15 @@ getConditionListStatic <-function(conditionList){
 }
 
 setGlobalConditionList <- function(x){
+  
+  for(i in 1:length(x)){
+    x[[i]]$condition_concept_id <- trimws(x[[i]]$condition_concept_id)
+    print(x[[i]]$condition_concept_id)
+  }
   cl <<- x
 }
 
-kk <- function(){
-  cl
-}
+
 
 search <- function(df){
   for(i in 1:length(test)){
@@ -245,9 +255,10 @@ search <- function(df){
   }  
 }
 
+
 searchCondition <- function(input){
   for(i in 1:length(cl)){
-    grepResult <- grep(input,cl[[i]]$condition_concept_id)
+    grepResult <- which(input==cl[[i]]$condition_concept_id)
     len <- length(grepResult)
     if(len>0){
       cat("[[ MATCHING ]] == ",input,"== [[ INDEX : ",grepResult," ]]\n")
@@ -262,9 +273,10 @@ getConditionStaticCount <- function(df){
   conditionList <- unlist(conditionList)
   conditionList <- as.data.frame(conditionList)
   print("[TRASLATE DATA FRAME]")
-  conditionList <- conditionList %>% group_by(conditionList) %>% summarise(count = n())
+  groupCondition <- conditionList %>% group_by(conditionList) %>% summarise(count = n())
   print("[COMPLETE GROUPING]")
-  conditionList
+  groupCondition
+  return(groupCondition)
 }
 #grep str
 
@@ -358,6 +370,7 @@ getPimColumn <- function(df,year){
     # result <- grepSearch(t)
     # return(result)
   }
+  
   drugListXlsx <- getInformXlsx("drug_inform.xlsx")
   drugListXlsx
   
@@ -447,7 +460,7 @@ setRdsEachYear <- function(df,f,start,end){
   }
 }
 #comorbidity list extraction ==========================================
-getComorbidityColumn <- function(comorbidiTyDf,year){
+getComorbidityColumn <- function(comorbidiTyDf,year){ #만성질환 리스트와 숫자 계산
   
   
   splitPimReturnDf <- function(x){
@@ -493,7 +506,7 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
     # result <- grepSearch(t)
     # return(result)
   }
-  listXlsx <- getInformXlsx("comorbidity_List.xlsx")
+  listXlsx <- getInformXlsx("Comorbidity_List.xlsx")
   listXlsx
   
   dtx <- listXlsx %>% select(condition_concept_id)
@@ -503,8 +516,9 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
   conditionList <- splitPimReturnDf(conditionTotalChr)
   conditionList <- as.data.frame(conditionList)
   names(conditionList) <- c("id")
-  head(conditionList)
-  conditionList
+  str(conditionList)
+  conditionList['id'] <- trimws(conditionList$id)
+  str(conditionList)
 
   # test <- readRDS("onlyPimTable.rds")
   # test
@@ -521,8 +535,83 @@ getComorbidityColumn <- function(comorbidiTyDf,year){
   cat("[[[ complete : ",year," ]]]\n")
   return(comorbidityDf)
 }
+getComorbidityColumn2 <- function(comorbidiTyDf){ #만성질환 리스트와 숫자 계산
+  
+  
+  splitPimReturnDf <- function(x){
+    splitS <- unlist(strsplit(x,","))
+    return(splitS)
+  }
+  
+  chChr <- function(x){
+    temp <- as.character(x)
+    temp <- trimws(temp)
+    return(temp)
+  }
+  
+  checkCormorbidity <- function(x){
+    result <-data.frame()
+    count <-0
+    tempStr <-NULL
+    trimStr <- trimws(as.character(x))
+    tempDf <- splitAndReturnDf(trimStr)
+    for(i in 1:length(tempDf)){
+      index <- which(conditionList == tempDf[[i]])
+      if(length(index) >0){
+        cat("Comorbidity : ",tempDf[[i]],"\n")
+        count <- count +1
+        if(length(tempStr)==0){
+          tempStr <-c(tempDf[[i]])
+        }
+        else{
+          tempStr <- paste(tempStr,tempDf[[i]],sep=",")
+        }
+      }else{
+        print(tempDf[[i]])
+      }
+    }
+    
+    if(count==0){
+      result <- data.frame(cbdCount=c(count),cbdList=c("x"))
+    }else{
+      result <- data.frame(cbdCount=c(count),cbdList=c(tempStr))
+    }
+    # print(result)
+    return(result)
+    # result <- grepSearch(t)
+    # return(result)
+  }
+  listXlsx <- getInformXlsx("Comorbidity_List.xlsx")
+  listXlsx
+  
+  dtx <- listXlsx %>% select(condition_concept_id)
+  dtx
+  conditionTotalChr<-apply(dtx,1,chChr)
+  conditionTotalChr
+  conditionList <- splitPimReturnDf(conditionTotalChr)
+  conditionList <- as.data.frame(conditionList)
+  names(conditionList) <- c("id")
+  str(conditionList)
+  conditionList['id'] <- trimws(conditionList$id)
+  str(conditionList)
+  
+  
+  # test <- readRDS("onlyPimTable.rds")
+  # test
+  totalTable <- comorbidiTyDf
+  totalTable <- totalTable %>% select(CONDITION_CONCEPT_ID)
+  
+  conditionListCount <- apply(totalTable,1,checkCormorbidity)
+  conditionListCount
+  comorbidityDf <- do.call(rbind.data.frame, conditionListCount)
+  # comorbidityDf
+  # summary(comorbidityDf)
+  # comorbidityResultDf <- bind_cols(test,comorbidityDf)
+  # saveRDS(comorbidityResultDf,"totalResultTable.rds")
+  return(comorbidityDf)
+}
 # comorbidity result save to RDS========================
-clacAndSaveComorbidity <- function(content,startYear,endYear){
+calcAndSaveComorbidity <- function(content,startYear,endYear){
   for(i in startYear:endYear){
     tempDf <- getRdsByYear(content,i,i)
     resultDf <- getComorbidityColumn(tempDf,i)
@@ -639,12 +728,10 @@ getPimNameMatchingResult <- function(df,year){
 #No. of chronic diseases per prescription, mean (SD) ===============================
 
 #No. of medications per prescription, mean (SD)  ===============================
-total <- readRDS("totalPimTable0317.rds")
-
 # mean sd
 getDfGender <- function(df){
-  m <- df %>% subset(trimws(gender)=="M")
-  w <- df %>% subset(trimws(gender)=="F")
+  m <- df %>% subset(trimws(GENDER)=="M")
+  w <- df %>% subset(trimws(GENDER)=="F")
   return(list(man=m,woman=w))
 }
 
@@ -665,8 +752,8 @@ meanSd
 # count <5, >=5
 getCount5 <- function(df){
   g5 <- function(x){
-    under5 <- x %>% subset(drug_count<5) %>% summarise(count = n())
-    over5 <- x %>% subset(drug_count>=5) %>% summarise(count = n())
+    under5 <- x %>% subset(DRUG_COUNT<5) %>% summarise(count = n())
+    over5 <- x %>% subset(DRUG_COUNT>=5) %>% summarise(count = n())
     return(c(under5$count,over5$count))
   }
   gender <- getDfGender(df)
@@ -761,11 +848,11 @@ getRatioAgePim <- function(df){
  
   ageRatio
 }
-total <- readRDS("totalPimTable0317.rds")
+
 total
 getRatioAgePim(total)
 # No. of chronic diseases per prescription, mean (SD) =====================================
-total <- readRDS("totalResultTable.rds")
+# total <- readRDS("totalResultTable.rds")
 str(total)
 # mean sd
 getDfGender <- function(df){
@@ -810,13 +897,13 @@ count1234
 
 # Table 2. Patterns of PIM use according to various characteristics 
 #PIM COUNT
-total <- readRDS("totalResultTable.rds")
+# total <- readRDS("totalResultTable.rds")
 
 total
 
 totalPimCount <- total %>% summarise(sum(pimCount))
-manPimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
-womanPimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
+# manPimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
+# womanPimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
 totalPimCount
 manPimCount
 womanPimCount
@@ -938,11 +1025,11 @@ getPimPerDscription <- function(input){
 }
 
 # combine comorbidity dataframes 
-getCombineComorbidityDataframes <- function(start,end){
+getCombineComorbidityDataframes <- function(f,start,end){
   df <- data.frame()
   count <- 0
   for(i in start:end){
-    temp <- getRdsByYear("comorbidityResult",i,i)
+    temp <- getRdsByYear(f,i,i)
     df<- bind_rows(df,temp)
     # if(count==0){
     #   cat(i,"(year) dataframe setting\n")
@@ -961,3 +1048,9 @@ getCombineComorbidityDataframes <- function(start,end){
   print("complete combine")
   return(df)
 }
+#p value calcurate ====================================
+
+
+
+#flag setup
+totalTable
