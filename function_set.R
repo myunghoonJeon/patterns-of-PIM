@@ -51,7 +51,7 @@ getConditionDrugCount <- function(str){
 drugStatus <- c(drug=c())
 # get gender count===================================================================
 getSdByGender <- function(gender){
-  gender <- trimws(gender)
+  gender <- trimws(GENDER)
   if(gender=="M"){
    
   }
@@ -697,7 +697,7 @@ getPimNameMatchingResult <- function(df,year){
   }
   # drugListXlsx <- getInformXlsx("drug_inform.xlsx")
   # drugListXlsx
-  pimTotal <- readRDS("totalResultTable.rds")
+  
   pimTotal
   pimTotal<-apply(pimTotal,1,chr)
   pimTotal
@@ -737,12 +737,12 @@ getDfGender <- function(df){
 
 getMeanSdPerGender <- function(df){
   ms <- function(df){
-    mean <- df %>% select(drug_count) %>% summarise(mean=mean(drug_count))
-    sd <- df %>% select(drug_count) %>% summarise(sd=sd(drug_count))
+    mean <- df %>% select(DRUG_COUNT) %>% summarise(mean=mean(DRUG_COUNT))
+    sd <- df %>% select(DRUG_COUNT) %>% summarise(sd=sd(DRUG_COUNT))
     return(c(mean$mean,sd$sd))
   }
-  manTotal <- df %>% subset(trimws(gender)=="M")
-  womanTotal <- df %>% subset(trimws(gender)=="F")
+  manTotal <- df %>% subset(trimws(GENDER)=="M")
+  womanTotal <- df %>% subset(trimws(GENDER)=="F")
   return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
 }
 
@@ -767,23 +767,23 @@ count5 <- getCount5(total)
 count5
 
 # No. of PIMs per presciprtion, mena(SD)============================================
-total <- readRDS("totalPimTable0317.rds")
+
 str(total)
 # mean sd
 getDfGender <- function(df){
-  m <- df %>% subset(trimws(gender)=="M")
-  w <- df %>% subset(trimws(gender)=="F")
+  m <- df %>% subset(trimws(GENDER)=="M")
+  w <- df %>% subset(trimws(GENDER)=="F")
   return(list(man=m,woman=w))
 }
 
 getMeanSdPerGender <- function(df){
   ms <- function(df){
-    mean <- df %>% select(pimcount) %>% summarise(mean=mean(pimcount))
-    sd <- df %>% select(pimcount) %>% summarise(sd=sd(pimcount))
+    mean <- df %>% select(pimCount) %>% summarise(mean=mean(pimCount))
+    sd <- df %>% select(pimCount) %>% summarise(sd=sd(pimCount))
     return(c(mean$mean,sd$sd))
   }
-  manTotal <- df %>% subset(trimws(gender)=="M")
-  womanTotal <- df %>% subset(trimws(gender)=="F")
+  manTotal <- df %>% subset(trimws(GENDER)=="M")
+  womanTotal <- df %>% subset(trimws(GENDER)=="F")
   return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
 }
 meanSd <- getMeanSdPerGender(total)
@@ -791,10 +791,10 @@ meanSd
 
 getCount123 <- function(df){
   g5 <- function(x){
-    g0 <- x %>% subset(pimcount==0) %>% summarise(count = n())
-    g1 <- x %>% subset(pimcount==1) %>% summarise(count = n())
-    g2 <- x %>% subset(pimcount==2) %>% summarise(count = n())
-    g3over <- x %>% subset(pimcount>=3) %>% summarise(count = n())
+    g0 <- x %>% subset(pimCount==0) %>% summarise(count = n())
+    g1 <- x %>% subset(pimCount==1) %>% summarise(count = n())
+    g2 <- x %>% subset(pimCount==2) %>% summarise(count = n())
+    g3over <- x %>% subset(pimCount>=3) %>% summarise(count = n())
     return(c(g0$count,g1$count,g2$count,g3over$count))
   }
 
@@ -814,12 +814,12 @@ manDf
 womanDf
 
 #age(years),mean(SD), by PIM ===============================================
-getAgePimCount <- function(df,start,end){
-  df <- df %>% subset(age>=start & age <=end) %>% summarise(count=sum(pimcount))
+getAgepimCount <- function(df,start,end){
+  df <- df %>% subset(age>=start & age <=end) %>% summarise(count=sum(pimCount))
   return(df$count)
 }
 
-getAgePimCountVector <- function(df){
+getAgepimCountVector <- function(df){
   c65to69 <- getAgeCount(df,65,69)
   c70to74 <- getAgeCount(df,70,74)
   c75to79 <- getAgeCount(df,75,79)
@@ -835,11 +835,11 @@ getRatioAgePim <- function(df){
   #total
   ta <- getAgeCountVector(df)
   #man
-  ma <- df %>% subset(trimws(gender)=="M")
-  ma <- getAgePimCountVector(ma)
+  ma <- df %>% subset(trimws(GENDER)=="M")
+  ma <- getAgepimCountVector(ma)
   #woman
-  wa <- df %>% subset(trimws(gender)=="F")
-  wa <- getAgePimCountVector(wa)
+  wa <- df %>% subset(trimws(GENDER)=="F")
+  wa <- getAgepimCountVector(wa)
   ageRatio <- data.frame(criteria=cl,total=ta,man=ma,woman=wa)
   
   # totalCount <- ageRatio %>% summarise(count = sum(total))
@@ -901,12 +901,11 @@ count1234
 
 total
 
-totalPimCount <- total %>% summarise(sum(pimCount))
-# manPimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
-# womanPimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
-totalPimCount
-manPimCount
-womanPimCount
+totalpimCount <- total %>% summarise(sum(pimCount))
+# manpimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
+# womanpimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
+totalpimCount
+womanpimCount
 
 #table2 exposure patterns of the study population to individual PIMs during the study period
 

@@ -741,6 +741,8 @@ getYearCountTable1 <- function(df){
 r <- getYearCount(repim)
 r 
 
+
+
 yp <- r[,6:7]
 
 yp <- as.matrix(yp)
@@ -749,3 +751,78 @@ pp <- chisq(yp)
 pp <- format(pp$Stat[2],scientific=F)
 pp <- as.numeric(pp)
 pp # 년도별 P value 계산
+
+#========== train
+df2 <- data.frame(name=c("abc","jmh","abc"),age=c(30,36,31),grade=c(1,2,3))
+
+df2$grade <- ifelse(df2$grade >= 3,"333",
+                    ifelse(df2$grade >= 2,"222",
+                           ifelse(df2$grade >= 1,"111",
+                                  "???"))
+                    )
+
+
+#=== study
+state.x77
+
+state <- as.data.frame(state.x77[,c("Murder","Population","Illiteracy","Income","Frost")])
+state
+
+fit = lm(Murder~ Population + Illiteracy + Income + Frost, data=state)
+summary(fit)
+par(mfrow=c(2,2))
+plot(fit)
+install.packages("car",dependencies=T)
+library(car)
+vif(fit)
+sqrt(vif(fit))
+
+fit
+#### 이상 관측치 ####
+influencePlot(fit,id.method="identify")
+
+#### 회귀모형의 교정 ####
+state
+t <- powerTransform(state$Murder)
+summary(t)
+
+boxTidwell(Murder~ Population + Illiteracy, data=state)
+
+ncvTest(fit)
+spreadLevelPlot(fit)
+
+#### orc #####
+
+total <- readRDS("realFinal.rds")
+org <- total
+str(org)
+org$pimCount <- ifelse(org$pimCount > 0,1,0)
+org$GENDER <- ifelse(org$GENDER =="F",2,3)
+org$GENDER <- as.factor(org$GENDER)
+str(org)
+orgFit <- glm(pimCount~ GENDER,family=binomial, data=org)
+summary(orgFit)
+
+install.packages("moonBook")
+
+require(moonBook)
+
+extractOR(orgFit)
+
+f1 <- glm(formula=pim~ gender,family=binomial,data=org)
+summary(f1)
+f2 <- glm(formula=pim~ gender,family=quasibinomial,data=org)
+pchisq(summary(f2)$dispersion*f1$df.residual,f1$df.residual,lower=F)
+plot()
+ORplot(orgFit,show.CI=T,main="plot")
+
+require(survival)
+data(colon)
+head(colon)
+out1=glm(status~sex+age+rx+obstruct+node4+nodes+extent,data=colon)
+summary(out1)
+extractOR(out1)
+out2=glm(status~rx+node4,data=colon)
+ORplot(orgFit,type=2,show.CI=TRUE,xlab="This is xlab",main="Main Title")
+ORplot(out2,type=1,main="Main Title")
+
