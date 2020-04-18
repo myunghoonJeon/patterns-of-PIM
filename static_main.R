@@ -1,14 +1,16 @@
 #function implementation
 library("dplyr")
 source("function_set.r")
+library(xlsx)
+library(moonBook)
 
 # conn <- getDbConnection()
 # sql <- getTotalTableQuerry()
 # totalTable <- querySql(conn,sql)
 # totalTable
 # saveRDS(totalTable,"totalTable.rds")
-conditionCountSumByGender <- getSumConditionCount(totalTable)
-conditionCountSumByGender
+# conditionCountSumByGender <- getSumConditionCount(totalTable)
+# conditionCountSumByGender
 
 # 
 # df1 <- data.frame(name=c("abc","abc","bbb","jmh","jmh","yym"),age=c(30,31,33,36,33,43))
@@ -47,7 +49,6 @@ ratioGender
 
 ####
 
-library(xlsx)
 setwd("c:\\Git\\patterns-of-PIM")
 carboplatin <- read.xlsx("carboplatin.xlsx",2)
 carboplatin
@@ -796,33 +797,322 @@ spreadLevelPlot(fit)
 total <- readRDS("realFinal.rds")
 org <- total
 str(org)
-org$pimCount <- ifelse(org$pimCount > 0,1,0)
-org$GENDER <- ifelse(org$GENDER =="F",2,3)
-org$GENDER <- as.factor(org$GENDER)
-str(org)
-orgFit <- glm(pimCount~ GENDER,family=binomial, data=org)
-summary(orgFit)
+#########################
+getOr <- function(df,str){
+  print("PIM 데이터 더미변환 - 기준 NO PIM")
+  df$pimCount <- ifelse(df$pimCount > 0,1,0) #pim 1 / no pim 0
+  
+  print("성별 데이터 더미변환 - 기준 WOMEN")
+  df$GENDER <- ifelse(df$GENDER =="M",1,0) #F 1 / M 0 
+  df$GENDER <- as.factor(df$GENDER)
+  
+  print("나이 데이터 더미변환 기준 - 65~69세")
+  df$AGE <- ifelse(df$AGE>=65&df$AGE<=69,0,
+                    ifelse(df$AGE>=70&df$AGE<=74,1,
+                           ifelse(df$AGE>=75&df$AGE<=79,2,
+                                  ifelse(df$AGE>=80&df$AGE<=84,3,
+                                         ifelse(df$AGE>=85,4,
+                                                5)))))
+  
+  df$AGE <-  as.factor(df$AGE)
+  
+  print("만성질환 데이터 더미변환 기준 - 질환수 0개")
+  df$cbdCount <- ifelse(df$cbdCount==0,0,
+                         ifelse(df$cbdCount==1,1,
+                                ifelse(df$cbdCount==2,2,
+                                       ifelse(df$cbdCount==3,3,
+                                              ifelse(df$cbdCount >= 4,4
+                                                     ,5)))))
+  df$cbdCount <- as.factor(df$cbdCount)
+  
+  print("약물 데이터 더미변환 기준 - 약물 수 5개 미만")
+  df %>% subset(DRUG_COUNT<31)
+  df$DRUG_COUNT <- ifelse(df$DRUG_COUNT>0&df$DRUG_COUNT<5,0,
+                          ifelse(df$DRUG_COUNT>=5&df$DRUG_COUNT<10,1,
+                                 ifelse(df$DRUG_COUNT>=10,2,3)))
+  df$DRUG_COUNT <- as.factor(df$DRUG_COUNT)
+  
+  print("데이터 변환 완료")
+  
 
-install.packages("moonBook")
+  # print("성별 - 로지스틱 회귀분석")
+  # orGender <- glm(pimCount~GENDER, family=binomial, data=df)
+  # print("OR 계산")
+  # orG <- extractOR(orGender)
+  # print("완료")
+  
+  print("나이 - 로지스틱 회귀분석")
+  orAge <- glm(pimCount~AGE, family=binomial, data=df)
+  print("OR 계산")
+  orA <- extractOR(orAge)
+  print("완료")
+  
+  print("만성질환- 로지스틱 회귀분석")
+  orCbd <- glm(pimCount~cbdCount, family=binomial, data=df)
+  print("OR 계산")
+  summary(orCbd)
+  orC <- extractOR(orCbd)
+  print("완료")
+  
+  print("약물 수 - 로지스틱 회귀분석")
+  orDrug<- glm(pimCount~DRUG_COUNT, family=binomial, data=df)
+  print("OR 계산")
+  orD <- extractOR(orDrug)
+  print("완료")
+  
+  ###
+  print("결과 종합")
+  orG <- orG[-c(1),]
+  orA <- orA[-c(1),]
+  orC <- orC[-c(1),]
+  orD <- orD[-c(1),]
+  
+  print("바인딩")
+  orResult <- rbind(orG,orA,orC,orD)
+  orResult$p <- round(orResult$p,3)
+  print("P값 정리")
+  orResult$p <- ifelse(orResult$p<0.0001,"<0.0001",orResult$p)
+  orResult
+  print("결과 포맷팅")
+  kk <- orResult %>% mutate(result = paste0(OR," (",lcl,"~",ucl,") (",p,")"))
+  row.names(kk) <- row.names(orResult)
+  saveName <- paste0(str,".xlsx")
+  print("엑셀 저장")
+  write.xlsx(kk,saveName)
+  print("최종 완료")
+  kk
+}
 
-require(moonBook)
+org
+getOr(org,"tOR")
 
-extractOR(orgFit)
+man <- total %>% subset(GENDER=="M")
+getOr(man,"mOR")
 
-f1 <- glm(formula=pim~ gender,family=binomial,data=org)
-summary(f1)
-f2 <- glm(formula=pim~ gender,family=quasibinomial,data=org)
-pchisq(summary(f2)$dispersion*f1$df.residual,f1$df.residual,lower=F)
-plot()
-ORplot(orgFit,show.CI=T,main="plot")
+women <- total %>% subset(GENDER=="F")
+getOr(women,"wOR")
 
-require(survival)
-data(colon)
-head(colon)
-out1=glm(status~sex+age+rx+obstruct+node4+nodes+extent,data=colon)
-summary(out1)
-extractOR(out1)
-out2=glm(status~rx+node4,data=colon)
-ORplot(orgFit,type=2,show.CI=TRUE,xlab="This is xlab",main="Main Title")
-ORplot(out2,type=1,main="Main Title")
+# fit <- glm(formula=pimCount~GENDER+AGE, family=binomial, data=org)
+# require(moonBook)
+# extractOR(fit)
+# summary(fit)
+# ORplot(fit,type=2,show.CI=TRUE,xlab="This is xlab",main="Main Title")
+# 
+# f1 <- glm(formula=pim~ gender,family=binomial,data=org)
+# 
+# summary(f1)
+# f2 <- glm(formula=pim~ gender,family=quasibinomial,data=org)
+# pchisq(summary(f2)$dispersion*f1$df.residual,f1$df.residual,lower=F)
+# plot()
+# ORplot(orgFit,show.CI=T,main="plot")
+# 
+# require(survival)
+# data(colon)
+# head(colon)
+# out1=glm(status~sex+age+rx+obstruct+node4+nodes+extent,data=colon)
+# summary(out1)
+# extractOR(out1)
+# out2=glm(status~rx+node4,data=colon)
+# out1
+# ORplot(out1,type=2,show.CI=TRUE,xlab="This is xlab",main="Main Title")
+# ORplot(out2,type=1,main="Main Title")
 
+#### 만성질환 별 로지스틱 회귀 분석 시작 ####
+
+
+
+#### 만성질환 인덱스랑 이름 구분 ####
+cbdFull <- getComorbidityFullList()
+cbdFull
+cf <- cbdFull %>% select(id)
+cf
+comorList <- getComorbidityIndexAndName(cbdFull)
+comorList
+
+total <- readRDS("realFinal.rds")
+total
+cbd <- total %>% select(cbdCount, cbdList)
+cbd
+
+
+
+names(test) <- c("count","cbdList")
+
+setComorFlag <- function(df){
+  comorFlag <- data.frame(ast=c(0),arr=c(0),hea=c(0),cop=c(0),isc=c(0),
+                          dep=c(0),dia=c(0),hyperl=c(0),hypert=c(0),liv=c(0),
+                          lym=c(0),met=c(0),myo=c(0),osteoa=c(0),osteop=c(0),
+                          ren=c(0),sol=c(0),str=c(0))
+  
+  count <- df['cbdCount']
+  count <- as.numeric(count)
+  cat("[",count,"] \n")
+  if(count>0){
+    b <- df['cbdList']
+    sp <- strsplit(b,",")
+    sp <- as.data.frame(unlist(sp))
+    len <- length(sp[,1])
+    for(i in 1:len){
+      idx <- which(cbdFull$id==trimws(sp[i,1]))
+      temp <- comorList %>% subset(idx >=start & idx<=end)
+      index <- temp$index
+      comorFlag[index] <- 1
+      cat("index : ",index," - ",temp$name," \n")
+    }
+  }else{
+  }
+  return(comorFlag)
+}
+
+test <- total %>% select(cbdList,cbdCount)
+str(test)
+count(test)
+
+result <- apply(test,1,setComorFlag)
+result
+
+mylist = do.call("rbind",result)
+
+count(mylist)
+View(mylist)
+
+count(mylist)
+count(total)
+
+total<-cbind(total,mylist)
+str(total)
+
+getComorOr <- function(df,gd,str){ # gd= "T","M","F" 으로 구분
+  df<- df %>% select(pimCount,GENDER,14:31)
+  if(gd =="M"){
+    print("남자 기준 로지스틱 회귀 시작")
+    df <- df %>% subset(GENDER=="M")
+    print(paste0("데이터 수 : ",count(df)))
+  }else if(gd =="F"){
+    print("여자 기준 로지스틱 회귀 시작")
+    df <- df %>% subset(GENDER=="F")
+    print(paste0("데이터 수 : ",count(df)))
+  }else{
+    print("남여 전체 기준 로지스틱 회귀 시작")
+    print(paste0("데이터 수 : ",count(df)))
+  }
+  
+  print("PIM 데이터 더미변환 - 기준 NO PIM")
+  df$pimCount <- ifelse(df$pimCount > 0,1,0) #pim 1 / no pim 0
+  
+  print("성별 데이터 더미변환 - 기준 WOMEN")
+  df$GENDER <- ifelse(df$GENDER =="M",1,0) #F 1 / M 0 
+  df$GENDER <- as.factor(df$GENDER)
+  
+  print("만성질환 데이터 더미변환 기준 - Asthma")
+  print("데이터 변환 완료")
+  
+  
+  # print("성별 - 로지스틱 회귀분석")
+  # orGender <- glm(pimCount~GENDER, family=binomial, data=df)
+  # print("OR 계산")
+  # orG <- extractOR(orGender)
+  # print("완료")
+  
+  # print("나이 - 로지스틱 회귀분석")
+  # orAge <- glm(pimCount~AGE, family=binomial, data=df)
+  # print("OR 계산")
+  # orA <- extractOR(orAge)
+  # print("완료")
+  
+  print("만성질환 별 - 로지스틱 회귀분석 시작")
+  df <- df %>% select(pimCount,3:20)
+  rdf <- NULL
+  for(i in 2:19){
+    colName <- colnames(df)[i]
+    cat(colName," 분석 \n")
+    rg <- glm(pimCount~df[,i], family=binomial, data=df)
+    cat("OR 계산\n")
+    summary(rg)
+    org <- extractOR(rg)
+    org <- org[-c(1),]
+    cat("완료\n") 
+    if(i==2){
+      rdf <- org
+    }else{
+      rdf <- rbind(rdf,org)
+    }
+  }
+  rdf
+  
+  # print("약물 수 - 로지스틱 회귀분석")
+  # orDrug<- glm(pimCount~DRUG_COUNT, family=binomial, data=df)
+  # print("OR 계산")
+  # orD <- extractOR(orDrug)
+  # print("완료")
+  
+  ###
+  print("결과 종합")
+  # orG <- orG[-c(1),]
+  # orA <- orA[-c(1),]
+  # orC <- orC[-c(1),]
+  # orD <- orD[-c(1),]
+  
+  # print("바인딩")
+  # orResult <- rbind(orG,orA,orC,orD)
+  # orResult$p <- round(orResult$p,3)
+  print("P값 정리")
+  orResult <- rdf
+  orResult$p <- ifelse(orResult$p<0.0001,"<0.0001",orResult$p)
+  orResult
+  print("결과 포맷팅")
+  kk <- orResult %>% mutate(result = paste0(OR," (",lcl,"~",ucl,") (",p,")"))
+  row.names(kk) <- row.names(orResult)
+  # saveName <- paste0(str,".xlsx")
+  # print("엑셀 저장")
+  # write.xlsx(kk,saveName)
+  print("최종 완료")
+  kk
+  return(kk)
+}
+
+getFormatComorRo <- function(x){
+  cn <- colnames(total %>% select(14:31))
+  cn
+  rownames(x) <- cn  
+  ro <- x %>% select(result)
+  newRo <- NULL
+  for(i in 1:18){
+    newRo <- rbind(newRo,c(1))
+    newRo <- rbind(newRo,c(1))
+    newRo <- rbind(newRo,ro[i,1])
+  }
+  return(newRo)
+}
+total
+
+resultOR <- getComorOr(total,"T","test")
+resultManOr <- getComorOr(total,"M","test")
+resultWomenOr <- getComorOr(total,"F","test")
+
+resultWomenOr
+
+ttt <- cbind(resultOR$result,resultManOr$result)
+ttt <- cbind(ttt,resultWomenOr$result)
+ttt
+resultWomenOr$result
+resultOR
+
+ftor <- getFormatComorRo(resultOR)
+fmor <- getFormatComorRo(resultManOr)
+fwor <- getFormatComorRo(resultWomenOr)
+
+ftor
+fmor
+fwor
+ttt
+finalOr <- ftor
+finalOr <- cbind(finalOr,fmor)
+finalOr <- cbind(finalOr,fwor)
+finalOr
+colnames(finalOr) <- c("total","man","women")
+finalOr
+
+write.xlsx(finalOr,"comorOr1st.xlsx")
+
+saveRDS(total,"fct.rds")

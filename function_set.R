@@ -47,8 +47,7 @@ getConditionDrugCount <- function(str){
   temp <- unlist(strsplit(str,","))
   return(length(temp))
 }
-# get drug count===================================================================
-drugStatus <- c(drug=c())
+
 # get gender count===================================================================
 getSdByGender <- function(gender){
   gender <- trimws(GENDER)
@@ -746,9 +745,6 @@ getMeanSdPerGender <- function(df){
   return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
 }
 
-meanSd <- getMeanSdPerGender(total)
-meanSd
-
 # count <5, >=5
 getCount5 <- function(df){
   g5 <- function(x){
@@ -763,12 +759,8 @@ getCount5 <- function(df){
   return(data.frame(criteria=c("<5",">=5"),total=t,man=m,woman=w))
 }
 
-count5 <- getCount5(total)
-count5
-
 # No. of PIMs per presciprtion, mena(SD)============================================
 
-str(total)
 # mean sd
 getDfGender <- function(df){
   m <- df %>% subset(trimws(GENDER)=="M")
@@ -786,8 +778,6 @@ getMeanSdPerGender <- function(df){
   womanTotal <- df %>% subset(trimws(GENDER)=="F")
   return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
 }
-meanSd <- getMeanSdPerGender(total)
-meanSd
 
 getCount123 <- function(df){
   g5 <- function(x){
@@ -804,14 +794,6 @@ getCount123 <- function(df){
   w <- g5(gender$woman)
   return(data.frame(criteria=c("0","1","2",">=3"),total=t,man=m,woman=w))
 }
-
-count123 <- getCount123(total)
-count123
-mwList <- getDfGender(total)
-manDf <- mwList$man
-womanDf <- mwList$woman
-manDf
-womanDf
 
 #age(years),mean(SD), by PIM ===============================================
 getAgepimCount <- function(df,start,end){
@@ -849,11 +831,10 @@ getRatioAgePim <- function(df){
   ageRatio
 }
 
-total
-getRatioAgePim(total)
+
 # No. of chronic diseases per prescription, mean (SD) =====================================
 # total <- readRDS("totalResultTable.rds")
-str(total)
+
 # mean sd
 getDfGender <- function(df){
   m <- df %>% subset(trimws(GENDER)=="M")
@@ -871,8 +852,7 @@ getMeanSdPerGender <- function(df){
   womanTotal <- df %>% subset(trimws(GENDER)=="F")
   return(data.frame(criteria=c("mean","sd"),ms(df),man=ms(manTotal),woman=ms(womanTotal)))
 }
-meanSd <- getMeanSdPerGender(total)
-meanSd
+
 
 getCount1234 <- function(df){
   g5 <- function(x){
@@ -891,21 +871,17 @@ getCount1234 <- function(df){
   return(data.frame(criteria=c("0","1","2","3",">=4"),total=t,man=m,woman=w))
 }
 
-count1234 <- getCount1234(total)
-count1234
+
 
 
 # Table 2. Patterns of PIM use according to various characteristics 
 #PIM COUNT
 # total <- readRDS("totalResultTable.rds")
 
-total
 
-totalpimCount <- total %>% summarise(sum(pimCount))
 # manpimCount <- total %>% subset(trimws(GENDER)=="M") %>% summarise(sum(pimCount))
 # womanpimCount <- total %>% subset(trimws(GENDER)=="F") %>% summarise(sum(pimCount))
-totalpimCount
-womanpimCount
+
 
 #table2 exposure patterns of the study population to individual PIMs during the study period
 
@@ -1052,4 +1028,85 @@ getCombineComorbidityDataframes <- function(f,start,end){
 
 
 #flag setup
-totalTable
+# totalTable
+
+
+### get COmorbidity index and Name ###
+getComorbidityFullList <- function(){
+  cbdTotal <- read.xlsx("Comorbidity_List.xlsx",1)
+  
+  cbdTotal$condition_concept_id <- as.character(cbdTotal$condition_concept_id)
+  cbdTotal$condition_name <- as.character(cbdTotal$condition_name)
+  head(cbdTotal)
+  size <- length(cbdTotal[,1])
+  
+  
+  
+  finalCbdList <- data.frame()
+  
+  for(i in 1:size){
+    n <- cbdTotal[i,1]
+    id <- cbdTotal[i,2]
+    ids <- sp(id)
+    ids <- as.data.frame(ids)
+    ids$name <- n
+    names(ids) <- c("id","name")
+    finalCbdList <- rbind(finalCbdList,ids)
+  }
+  
+  finalCbdList$id <- as.character(finalCbdList$id)
+  str(finalCbdList)
+  fd <- finalCbdList
+  fd
+  return(fd)
+}
+  
+getComorbidityIndexAndName <- function(fc){
+    comorSet <- data.frame(start=c(0),end=c(0),name=c(""))
+    tempSet <- comorSet
+    
+    origin<-"";
+    temp<-"";
+    st<-0
+    ed<-0
+    flag <-0
+    for(i in 1:255){
+      if(i==1){
+        origin <- fc[i,2]
+        st <- 1
+      }else{
+        temp <- fc[i,2]
+        if(origin!=temp){
+          cat("\n")
+          ed <- i-1
+          if(flag==0){
+            comorSet$start = 1
+            comorSet$end = ed
+            comorSet$name = origin
+            cat(st," - ",ed," : ",comorSet$name,"\n")
+            flag <- 1
+          }else{
+            cat("NEW")
+            tempSet$start = st
+            tempSet$end = ed
+            tempSet$name = origin
+            cat(st," - ",ed," : ",tempSet$name,"\n")
+            comorSet <- rbind(comorSet,tempSet)
+            
+          }
+          st <- i
+          origin <- temp
+        }else{
+          cat("=")
+        }
+      }
+    }
+    tempSet$start <- st
+    tempSet$end <- 255
+    tempSet$name <- temp
+    comorSet <- rbind(comorSet,tempSet)
+    comorSet$index <- 1:18
+    return(comorSet)
+}
+
+
