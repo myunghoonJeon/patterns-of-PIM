@@ -157,7 +157,7 @@ indep.test=function(o) {
 }
 # 만성질환 p value 구하기 
 
-getComorbidityPvalue <- function(){
+getComorbidityPvalue <- function(df){
   options(scipen=100)
   indep.test=function(o) {
     row.sum=apply(o,1,sum)
@@ -197,21 +197,25 @@ getChi <- function(x){
    
     return(p)
   }
-  tt <- read.xlsx("mw.xlsx",1)
-  pv1 <- setTotal(tt,1)
-  print("====================")
-  pv2 <- setTotal(tt,2)
-  print("====================")
-  pv3 <- setTotal(tt,3)
-  print("====================")
-  pv1 <- as.data.frame(pv1)
-  pv1
-  pv2 <- as.data.frame(pv2)
-  pv2
-  pv3 <- as.data.frame(pv3)
-  pv3
-  result <- cbind(pv1,pv2,pv3)
-  result
+  # tt <- read.xlsx("mw.xlsx",1)
+  # pv1 <- setTotal(tt,1)
+  # print("====================")
+  # pv2 <- setTotal(tt,2)
+  # print("====================")
+  # pv3 <- setTotal(tt,3)
+  # print("====================")
+  # pv1 <- as.data.frame(pv1)
+  # pv1
+  # pv2 <- as.data.frame(pv2)
+  # pv2
+  # pv3 <- as.data.frame(pv3)
+  # pv3
+  # result <- cbind(pv1,pv2,pv3)
+  # result
+  
+  tt <- setTotal(df,1)
+  result <- tt
+  
   return(result)
 }
 
